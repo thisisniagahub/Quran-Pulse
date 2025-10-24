@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QuranPulse</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              'primary': '#e63968', // Pink
+              'accent': '#f9d423',  // Yellow
+              'background': {
+                'light': '#43a99d', // Teal
+                'dark': '#0D1B2A'   // Very Dark Blue
+              },
+              'foreground': {
+                'light': '#f8fafc', // Off-white
+                'dark': '#E0E1DD'   // Light Grey
+              },
+              'card': {
+                'light': '#3b9489', // Darker Teal
+                'dark': '#1B263B'   // Dark Blue-Gray
+              },
+              'border': {
+                'light': '#328076', // Even Darker Teal
+                'dark': '#415A77'   // Grayish Blue
+              },
+            },
+            fontFamily: {
+              'sans': ['Inter', 'sans-serif'],
+              'arabic': ['"Noto Naskh Arabic"', 'serif']
+            }
+          }
+        }
+      }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.25.0"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "name": "QuranPulse",
+  "description": "A sophisticated and trustworthy Al-Quran SuperApp for Malaysia, featuring JAKIM-verified data, advanced AI learning tools, and an ethical, minimalist user experience.",
+  "requestFramePermissions": [
+    "microphone",
+    "geolocation"
+  ]
+}
