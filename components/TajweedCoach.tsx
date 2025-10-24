@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 // FIX: Removed non-exported 'LiveSession' type.
 import { GoogleGenAI, LiveServerMessage, Modality, Blob } from '@google/genai';
 import { MicrophoneIcon, SparklesIcon, StopCircleIcon, ChevronLeftIcon } from './icons/Icons';
-import { PracticeMaterial } from '../types';
+import { PracticeMaterial, TajweedSession } from '../types';
+import { addTajweedSession } from '../services/dbService';
 
 // Audio Encoding/Decoding Helpers
 function encode(bytes: Uint8Array): string {
@@ -76,6 +77,22 @@ export const TajweedCoach: React.FC<TajweedCoachProps> = ({ practiceMaterial, on
     const nextStartTimeRef = useRef<number>(0);
     const audioSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
     const currentAiResponseRef = useRef<string>('');
+
+    const saveSession = async () => {
+        if (transcripts.length > 0) {
+            const sessionData: Omit<TajweedSession, 'id'> = {
+                material: practiceMaterial,
+                transcripts: transcripts,
+                timestamp: Date.now(),
+            };
+            try {
+                await addTajweedSession(sessionData);
+                console.log('Tajweed session saved.');
+            } catch (error) {
+                console.error('Failed to save Tajweed session:', error);
+            }
+        }
+    };
 
 
     const cleanupAudio = () => {
@@ -152,11 +169,13 @@ export const TajweedCoach: React.FC<TajweedCoachProps> = ({ practiceMaterial, on
                     },
                     onerror: (e: ErrorEvent) => {
                         console.error('Session error', e);
+                        saveSession();
                         setStatus('idle');
                         cleanupAudio();
                     },
                     onclose: () => {
                         console.log('Session closed');
+                        saveSession();
                         cleanupAudio();
                         setStatus('idle');
                     },
@@ -231,8 +250,7 @@ export const TajweedCoach: React.FC<TajweedCoachProps> = ({ practiceMaterial, on
     const stopSession = () => {
         sessionPromiseRef.current?.then(session => session.close());
         sessionPromiseRef.current = null;
-        cleanupAudio();
-        setStatus('idle');
+        // cleanup is called in onclose which will also save the session
     };
 
     useEffect(() => {

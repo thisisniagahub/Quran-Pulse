@@ -4,13 +4,11 @@ import { Sidebar } from './components/Sidebar';
 import { QuranReader } from './components/QuranReader';
 import { PrayerTimes } from './components/PrayerTimes';
 import { QiblaCompass } from './components/QiblaCompass';
-import { TanyaUstaz } from './components/TanyaUstaz';
+import { AICompanion } from './components/AICompanion';
 import { TajweedTutor } from './components/TajweedTutor';
 import { StudyPlanner } from './components/StudyPlanner';
 import { IbadahTracker } from './components/IbadahTracker';
 import { DoaList } from './components/DoaList';
-import { AIChatbot } from './components/AIChatbot';
-import { LiveConversation } from './components/LiveConversation';
 import { JawiWriter } from './components/JawiWriter';
 import { GlobalAudioPlayer } from './components/GlobalAudioPlayer';
 import { AudioProvider } from './context/AudioContext';
@@ -21,6 +19,10 @@ const App: React.FC = () => {
   const [theme, setTheme] = useState<Theme>(Theme.DARK);
   const [activeView, setActiveView] = useState<ActiveView>(ActiveView.QURAN_READER);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [quranSurah, setQuranSurah] = useState(1);
+  const [quranAyah, setQuranAyah] = useState<number | null>(null);
+  const [quranAutoplay, setQuranAutoplay] = useState(false);
+
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -34,17 +36,44 @@ const App: React.FC = () => {
   const toggleTheme = () => {
     setTheme(theme === Theme.LIGHT ? Theme.DARK : Theme.LIGHT);
   };
+  
+  const handleNavigation = (view: ActiveView, params?: { surahNumber?: number; ayahNumber?: number; autoplay?: boolean }) => {
+    // Reset autoplay trigger on any navigation. It will be set again if needed.
+    if (quranAutoplay) {
+        setQuranAutoplay(false);
+    }
+
+    if (view === ActiveView.QURAN_READER && params?.surahNumber) {
+        setQuranSurah(params.surahNumber);
+        setQuranAyah(params.ayahNumber ?? null);
+        if (params.autoplay) {
+            setQuranAutoplay(true);
+        }
+    }
+    setActiveView(view);
+    // Close sidebar on navigation for mobile
+    if (window.innerWidth < 768) {
+      setSidebarOpen(false);
+    }
+  };
+
 
   const renderActiveView = () => {
     switch (activeView) {
       case ActiveView.QURAN_READER:
-        return <QuranReader />;
+        return <QuranReader 
+          key={`${quranSurah}-${quranAyah}`} 
+          initialSurah={quranSurah} 
+          highlightAyah={quranAyah} 
+          startAutoplay={quranAutoplay}
+          onAutoplayHandled={() => setQuranAutoplay(false)}
+        />;
       case ActiveView.PRAYER_TIMES:
         return <PrayerTimes />;
       case ActiveView.QIBLA:
         return <QiblaCompass />;
-      case ActiveView.TANYA_USTAZ:
-        return <TanyaUstaz />;
+      case ActiveView.AI_COMPANION:
+        return <AICompanion onNavigate={handleNavigation} />;
       case ActiveView.TAJWEED_COACH:
         return <TajweedTutor />;
       case ActiveView.STUDY_PLANNER:
@@ -53,14 +82,10 @@ const App: React.FC = () => {
         return <IbadahTracker />;
       case ActiveView.DOA_ZIKR:
           return <DoaList />;
-      case ActiveView.AI_CHATBOT:
-          return <AIChatbot />;
-      case ActiveView.LIVE_CONVERSATION:
-          return <LiveConversation />;
       case ActiveView.JAWI_WRITER:
           return <JawiWriter />;
       default:
-        return <QuranReader />;
+        return <QuranReader initialSurah={1} />;
     }
   };
 
@@ -69,13 +94,11 @@ const App: React.FC = () => {
         [ActiveView.QURAN_READER]: "Al-Quran Al-Karim",
         [ActiveView.PRAYER_TIMES]: "Waktu Solat",
         [ActiveView.QIBLA]: "Arah Qiblat",
-        [ActiveView.TANYA_USTAZ]: "Rujukan Ustaz AI",
+        [ActiveView.AI_COMPANION]: "Sobat AI Cerdas",
         [ActiveView.TAJWEED_COACH]: "Tutor Tajwid AI",
         [ActiveView.STUDY_PLANNER]: "Pelan Pembelajaran AI",
         [ActiveView.IBADAH_TRACKER]: "Penjejak Ibadah",
         [ActiveView.DOA_ZIKR]: "Doa & Zikir Harian",
-        [ActiveView.AI_CHATBOT]: "Sembang AI",
-        [ActiveView.LIVE_CONVERSATION]: "Sembang Suara AI",
         [ActiveView.JAWI_WRITER]: "Penulis Jawi AI",
     };
     return titles[activeView];
@@ -84,7 +107,7 @@ const App: React.FC = () => {
   return (
     <AudioProvider>
       <div className="flex h-screen bg-background-light dark:bg-background-dark font-sans text-foreground-light dark:text-foreground-dark">
-        <Sidebar activeView={activeView} setActiveView={setActiveView} isOpen={isSidebarOpen} setOpen={setSidebarOpen} />
+        <Sidebar activeView={activeView} setActiveView={handleNavigation} isOpen={isSidebarOpen} setOpen={setSidebarOpen} />
         <div className="flex-1 flex flex-col overflow-hidden">
           <header className="flex-shrink-0 p-4 border-b border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark z-20">
             <div className="flex justify-between items-center h-full">

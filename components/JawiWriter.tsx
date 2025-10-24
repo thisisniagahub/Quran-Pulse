@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { convertToJawi } from '../services/geminiService';
+import { addJawiConversion } from '../services/dbService';
 import { SparklesIcon } from './icons/Icons';
 
 export const JawiWriter: React.FC = () => {
@@ -20,6 +21,8 @@ export const JawiWriter: React.FC = () => {
         try {
             const result = await convertToJawi(rumiText);
             setJawiText(result);
+            // Save the successful conversion to the database
+            await addJawiConversion({ rumi: rumiText, jawi: result });
         } catch (err) {
             setError('Gagal menukar teks. Sila cuba lagi.');
             console.error(err);

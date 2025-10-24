@@ -3,7 +3,7 @@ import React from 'react';
 import { ActiveView } from '../types';
 import { 
     BookOpenIcon, ClockIcon, CompassIcon, SparklesIcon, MicrophoneIcon, 
-    CalendarIcon, CheckSquareIcon, ListIcon, XIcon, ChatBubbleIcon, SpeakerWaveIcon, PencilIcon
+    CalendarIcon, CheckSquareIcon, ListIcon, XIcon, PencilIcon
 } from './icons/Icons';
 
 interface SidebarProps {
@@ -68,9 +68,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isO
           <NavItem icon={<ListIcon />} label="Doa & Zikir" view={ActiveView.DOA_ZIKR} activeView={activeView} onClick={handleNavClick} />
 
           <p className="px-4 pt-6 pb-2 text-xs font-semibold text-foreground-light/60 dark:text-foreground-dark/60 uppercase tracking-wider">Bantuan AI</p>
-          <NavItem icon={<SparklesIcon />} label="Rujukan Ustaz AI" view={ActiveView.TANYA_USTAZ} activeView={activeView} onClick={handleNavClick} />
-          <NavItem icon={<ChatBubbleIcon />} label="Sembang AI" view={ActiveView.AI_CHATBOT} activeView={activeView} onClick={handleNavClick} />
-          <NavItem icon={<SpeakerWaveIcon />} label="Sembang Suara AI" view={ActiveView.LIVE_CONVERSATION} activeView={activeView} onClick={handleNavClick} />
+          <NavItem icon={<SparklesIcon />} label="Sobat AI Cerdas" view={ActiveView.AI_COMPANION} activeView={activeView} onClick={handleNavClick} />
           <NavItem icon={<PencilIcon />} label="Penulis Jawi AI" view={ActiveView.JAWI_WRITER} activeView={activeView} onClick={handleNavClick} />
           <NavItem icon={<MicrophoneIcon />} label="Tutor Tajwid AI" view={ActiveView.TAJWEED_COACH} activeView={activeView} onClick={handleNavClick} isPremium={true} />
           <NavItem icon={<CalendarIcon />} label="Pelan Pembelajaran" view={ActiveView.STUDY_PLANNER} activeView={activeView} onClick={handleNavClick} />

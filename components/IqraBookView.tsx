@@ -101,7 +101,7 @@ export const IqraBookView: React.FC<IqraBookViewProps> = ({ onSelectMaterial, on
         });
         wordsToPlay.push({ id: getWordId(result, lineIndex, 99) }); // 99 for result
       } else {
-        line.split(' ').forEach((word, wordIndex) => {
+        line.split(' ').filter(word => word.trim() !== '').forEach((word, wordIndex) => {
           wordsToPlay.push({ id: getWordId(word, lineIndex, wordIndex) });
         });
       }
@@ -257,7 +257,7 @@ export const IqraBookView: React.FC<IqraBookViewProps> = ({ onSelectMaterial, on
                         // Fallback for regular lines
                         return (
                             <div key={lineIndex} className="flex justify-center items-center gap-x-4 sm:gap-x-6 flex-wrap">
-                                {line.split(' ').map((word, wordIndex) => {
+                                {line.split(' ').filter(word => word.trim() !== '').map((word, wordIndex) => {
                                     const wordId = getWordId(word, lineIndex, wordIndex);
                                     return (
                                         <InteractiveWord

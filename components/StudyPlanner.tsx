@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { StudyPlan } from '../types';
 import { generateStudyPlan } from '../services/geminiService';
+import { addStudyPlan, getStudyPlans } from '../services/dbService';
 import { CalendarIcon, SparklesIcon } from './icons/Icons';
 
 const PlanDisplay: React.FC<{ plan: StudyPlan }> = ({ plan }) => (
@@ -28,6 +29,20 @@ export const StudyPlanner: React.FC = () => {
     const [plan, setPlan] = useState<StudyPlan | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [savedPlans, setSavedPlans] = useState<StudyPlan[]>([]);
+
+    useEffect(() => {
+        const fetchPlans = async () => {
+            const plans = await getStudyPlans();
+            setSavedPlans(plans);
+             // Display the most recent plan on load
+            if (plans.length > 0) {
+                const sortedPlans = plans.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                setPlan(sortedPlans[0]);
+            }
+        };
+        fetchPlans();
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -41,7 +56,15 @@ export const StudyPlanner: React.FC = () => {
 
         const result = await generateStudyPlan(goal, duration, level);
         if (result) {
-            setPlan(result);
+            const planToSave: StudyPlan = { ...result, goal, duration, level };
+            setPlan(planToSave);
+            try {
+                await addStudyPlan(planToSave);
+                const updatedPlans = await getStudyPlans();
+                setSavedPlans(updatedPlans);
+            } catch (dbError) {
+                console.error("Failed to save study plan:", dbError);
+            }
         } else {
             setError("Maaf, gagal menjana pelan. Sila cuba lagi.");
         }

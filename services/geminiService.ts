@@ -116,6 +116,9 @@ export const generateStudyPlan = async (goal: string, duration: string, level: s
 }
 
 export const generateSpeech = async (text: string): Promise<string | null> => {
+    if (!text || !text.trim()) {
+        return null;
+    }
     try {
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash-preview-tts",

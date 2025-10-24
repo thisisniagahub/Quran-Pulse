@@ -1,8 +1,10 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { Surah, Ayah, Translation } from '../types';
 import { PlayIcon, ChevronLeftIcon, ChevronRightIcon, PauseIcon, InformationCircleIcon, QueueListIcon } from './icons/Icons';
 import { explainAyah } from '../services/geminiService';
 import { useAudioPlayer } from '../context/AudioContext';
+import { getAyahExplanation, addAyahExplanation } from '../services/dbService';
 
 // Hardcoded data for Surah Al-Fatihah as a fallback
 const fallbackSurah: Surah = {
@@ -54,8 +56,23 @@ const AyahView: React.FC<{
     explanation: string | null;
     isExplanationLoading: boolean;
     lastPlayedAyah: number | null;
-}> = ({ ayah, surah, malay, sahih, translation, onExplain, isExpanded, explanation, isExplanationLoading, lastPlayedAyah }) => {
+    isQueueActive: boolean;
+    isLoading: boolean;
+    stopAutoplay: () => void;
+    isHighlighted: boolean;
+}> = ({ 
+    ayah, surah, malay, sahih, translation, onExplain, isExpanded, explanation, 
+    isExplanationLoading, lastPlayedAyah, isQueueActive, isLoading, stopAutoplay, isHighlighted
+}) => {
     const { track, isPlaying, playTrack, togglePlayPause } = useAudioPlayer();
+    const ayahRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (isHighlighted && ayahRef.current) {
+            ayahRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, [isHighlighted]);
+
 
     const getAudioSrc = useCallback(() => {
         const surahNumPadded = String(surah.number).padStart(3, '0');
@@ -69,6 +86,8 @@ const AyahView: React.FC<{
         if (isCurrentTrack) {
             togglePlayPause();
         } else {
+            // Any manual play of a new track stops the autoplay queue.
+            stopAutoplay();
             playTrack({
                 src: getAudioSrc(),
                 title: `S. ${surah.englishName}, Ayat ${ayah.numberInSurah}`,
@@ -80,7 +99,7 @@ const AyahView: React.FC<{
     const showExplainButton = isExpanded || (lastPlayedAyah === ayah.number && !isPlaying);
     
     return (
-        <div className="py-6 border-b border-border-light dark:border-border-dark">
+        <div ref={ayahRef} className={`py-6 border-b border-border-light dark:border-border-dark transition-colors duration-500 ${isHighlighted ? 'bg-primary/10' : ''}`}>
             <div className="flex justify-between items-center mb-4">
                 <span className="text-sm font-semibold text-primary">{ayah.numberInSurah}</span>
                 <div className="flex items-center gap-2">
@@ -96,10 +115,17 @@ const AyahView: React.FC<{
                      )}
                     <button 
                         onClick={handlePlay}
-                        className="p-2 rounded-full hover:bg-foreground-light/5 dark:hover:bg-foreground-dark/5 transition-colors"
+                        disabled={isLoading || (isQueueActive && !isCurrentTrack)}
+                        className="p-2 rounded-full hover:bg-foreground-light/5 dark:hover:bg-foreground-dark/5 transition-colors disabled:opacity-50"
                         aria-label={isCurrentTrack && isPlaying ? "Pause audio" : "Play audio"}
                     >
-                        {isCurrentTrack && isPlaying ? <PauseIcon className="w-5 h-5" /> : <PlayIcon className="w-5 h-5" />}
+                        {isLoading ? (
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
+                        ) : isCurrentTrack && isPlaying ? (
+                            <PauseIcon className="w-5 h-5" />
+                        ) : (
+                            <PlayIcon className="w-5 h-5" />
+                        )}
                     </button>
                 </div>
             </div>
@@ -127,31 +153,78 @@ const AyahView: React.FC<{
     );
 };
 
-export const QuranReader: React.FC = () => {
+interface QuranReaderProps {
+    initialSurah: number;
+    highlightAyah?: number | null;
+    startAutoplay?: boolean;
+    onAutoplayHandled?: () => void;
+}
+
+export const QuranReader: React.FC<QuranReaderProps> = ({ initialSurah, highlightAyah = null, startAutoplay = false, onAutoplayHandled }) => {
     const [surah, setSurah] = useState<Surah | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [currentSurah, setCurrentSurah] = useState(1);
+    const [currentSurah, setCurrentSurah] = useState(initialSurah);
     const [translation, setTranslation] = useState<'malay' | 'sahih' | 'none'>('malay');
     const [explainingAyah, setExplainingAyah] = useState<number | null>(null);
     const [explanation, setExplanation] = useState<string | null>(null);
     const [isExplanationLoading, setIsExplanationLoading] = useState(false);
+    
     const [isAutoplayActive, setAutoplayActive] = useState(false);
+    const [playbackQueue, setPlaybackQueue] = useState<Ayah[]>([]);
+    const [loadingAyah, setLoadingAyah] = useState<number | null>(null);
     const [lastPlayedAyah, setLastPlayedAyah] = useState<number | null>(null);
     
     const { track, isPlaying, currentTime, duration, playTrack, stop } = useAudioPlayer();
     const autoplayNextSurahRef = useRef(false);
 
-    const toggleAutoplay = () => {
-        setAutoplayActive(prev => !prev);
-        autoplayNextSurahRef.current = false;
-    };
+    const toggleAutoplay = useCallback(() => {
+        if (isAutoplayActive) {
+            setAutoplayActive(false);
+            setPlaybackQueue([]);
+            stop();
+        } else {
+            if (!surah) return;
+            setAutoplayActive(true);
+            let startingAyahIndex = 0;
+
+            if (track && isPlaying && surah) {
+                const match = track.title.match(/S\. (.*?), Ayat (\d+)/);
+                if (match) {
+                    const trackSurahName = match[1];
+                    const currentAyahNumInSurah = parseInt(match[2], 10);
+                    // Refinement: Ensure the currently playing track belongs to the current surah
+                    // before trying to continue from it.
+                    if (surah.englishName === trackSurahName) {
+                        const idx = surah.ayahs.findIndex(a => a.numberInSurah === currentAyahNumInSurah);
+                        if (idx !== -1) {
+                            startingAyahIndex = idx + 1;
+                        }
+                    }
+                }
+            }
+            
+            const queue = surah.ayahs.slice(startingAyahIndex);
+            if (queue.length > 0) {
+                 setPlaybackQueue(queue);
+            } else if (surah.number < 114) {
+                 autoplayNextSurahRef.current = true;
+                 setCurrentSurah(surah.number + 1);
+            }
+        }
+    }, [isAutoplayActive, surah, track, isPlaying, stop]);
+    
+    const stopAutoplay = useCallback(() => {
+        setAutoplayActive(false);
+        setPlaybackQueue([]);
+    }, []);
 
     const resetStates = useCallback(() => {
         stop();
         setExplainingAyah(null);
         setExplanation(null);
         setLastPlayedAyah(null);
+        setPlaybackQueue([]);
     }, [stop]);
 
     const fetchSurah = useCallback(async (surahNumber: number) => {
@@ -187,81 +260,86 @@ export const QuranReader: React.FC = () => {
             
             if (autoplayNextSurahRef.current) {
                 autoplayNextSurahRef.current = false;
-                const firstAyah = formattedSurah.ayahs[0];
-                const surahNumPadded = String(formattedSurah.number).padStart(3, '0');
-                const ayahNumPadded = String(firstAyah.numberInSurah).padStart(3, '0');
-                playTrack({
-                    src: `https://everyayah.com/data/Alafasy_128kbps/${surahNumPadded}${ayahNumPadded}.mp3`,
-                    title: `S. ${formattedSurah.englishName}, Ayat ${firstAyah.numberInSurah}`,
-                    type: 'mp3'
-                });
+                if (isAutoplayActive) {
+                    setPlaybackQueue(formattedSurah.ayahs);
+                }
             }
 
         } catch (err) {
             console.error("Failed to fetch surah:", err);
             setError("Gagal memuatkan data surah. Memaparkan data luar talian.");
             setSurah(fallbackSurah);
+            // Refinement: If fetching the next surah fails during autoplay, stop the process gracefully.
+            if (autoplayNextSurahRef.current) {
+                autoplayNextSurahRef.current = false;
+                setAutoplayActive(false);
+            }
         } finally {
             setLoading(false);
         }
-    }, [resetStates, playTrack]);
+    }, [resetStates, isAutoplayActive]);
 
-    const handlePlayNext = useCallback(() => {
-        if (!track || !surah) return;
+    // Effect for handling the startAutoplay prop
+    useEffect(() => {
+        // Trigger autoplay only when requested, not already active, and data is ready.
+        if (startAutoplay && !isAutoplayActive && !loading && surah) {
+            toggleAutoplay();
+            onAutoplayHandled?.(); // Notify parent that the action has been handled
+        }
+    }, [startAutoplay, isAutoplayActive, loading, surah, toggleAutoplay, onAutoplayHandled]);
 
-        const match = track.src.match(/(\d{3})(\d{3})\.mp3$/);
-        if (!match) return; 
+    // Effect to unset loading state once playback starts
+    useEffect(() => {
+        if (isPlaying) {
+            setLoadingAyah(null);
+        }
+    }, [isPlaying]);
 
-        const currentSurahNum = parseInt(match[1], 10);
-        const currentAyahNum = parseInt(match[2], 10);
-
-        if (currentSurahNum !== surah.number) return;
-
-        const nextAyahNumInSurah = currentAyahNum + 1;
-
-        if (nextAyahNumInSurah <= surah.ayahs.length) {
-            const nextAyah = surah.ayahs.find(a => a.numberInSurah === nextAyahNumInSurah);
-            if (!nextAyah) return;
-
+    // Effect to advance the queue when a track finishes
+    useEffect(() => {
+        const trackFinished = !isPlaying && duration > 0 && Math.abs(currentTime - duration) < 0.2;
+        if (trackFinished && playbackQueue.length > 0 && surah) {
+            const currentAyahInQueue = playbackQueue[0];
             const surahNumPadded = String(surah.number).padStart(3, '0');
-            const ayahNumPadded = String(nextAyah.numberInSurah).padStart(3, '0');
-            const src = `https://everyayah.com/data/Alafasy_128kbps/${surahNumPadded}${ayahNumPadded}.mp3`;
-
-            playTrack({
-                src,
-                title: `S. ${surah.englishName}, Ayat ${nextAyah.numberInSurah}`,
-                type: 'mp3'
-            });
-        } else {
-            if (surah.number < 114) {
-                autoplayNextSurahRef.current = true;
-                setCurrentSurah(surah.number + 1);
-            } else {
-                setAutoplayActive(false);
+            const ayahNumPadded = String(currentAyahInQueue.numberInSurah).padStart(3, '0');
+            const expectedSrc = `https://everyayah.com/data/Alafasy_128kbps/${surahNumPadded}${ayahNumPadded}.mp3`;
+            
+            if (track?.src === expectedSrc) {
+                setLastPlayedAyah(currentAyahInQueue.number);
+                setPlaybackQueue(q => q.slice(1));
             }
         }
-    }, [track, surah, playTrack]);
-    
-    // Effect to handle track completion
+    }, [isPlaying, currentTime, duration, playbackQueue, track, surah]);
+
+    // Effect to play next in queue or fetch next surah
     useEffect(() => {
-        const trackFinished = !isPlaying && duration > 0 && Math.abs(currentTime - duration) < 0.5;
-        if (trackFinished) {
-            if (track && surah) {
-                const match = track.title.match(/Ayat (\d+)/);
-                if (match) {
-                    const finishedAyahNumInSurah = parseInt(match[1], 10);
-                    const finishedAyah = surah.ayahs.find(a => a.numberInSurah === finishedAyahNumInSurah);
-                    if (finishedAyah) {
-                        setLastPlayedAyah(finishedAyah.number);
-                    }
+        const playNextInQueue = () => {
+            if (isAutoplayActive && playbackQueue.length > 0 && !isPlaying && !loadingAyah && surah) {
+                const nextAyah = playbackQueue[0];
+                const surahNumPadded = String(surah.number).padStart(3, '0');
+                const ayahNumPadded = String(nextAyah.numberInSurah).padStart(3, '0');
+                const src = `https://everyayah.com/data/Alafasy_128kbps/${surahNumPadded}${ayahNumPadded}.mp3`;
+
+                if (track?.src === src) return;
+
+                setLoadingAyah(nextAyah.number);
+                playTrack({
+                    src,
+                    title: `S. ${surah.englishName}, Ayat ${nextAyah.numberInSurah}`,
+                    type: 'mp3'
+                });
+            } else if (isAutoplayActive && playbackQueue.length === 0 && !isPlaying && !loadingAyah && surah) {
+                // Queue is empty, try to fetch next surah
+                if (surah.number < 114) {
+                    autoplayNextSurahRef.current = true;
+                    setCurrentSurah(surah.number + 1);
+                } else {
+                    setAutoplayActive(false); // End of Quran
                 }
             }
-            if (isAutoplayActive) {
-                handlePlayNext();
-            }
-        }
-    }, [isPlaying, isAutoplayActive, currentTime, duration, handlePlayNext, track, surah]);
-
+        };
+        playNextInQueue();
+    }, [playbackQueue, isAutoplayActive, isPlaying, loadingAyah, surah, track, playTrack]);
 
     useEffect(() => {
         fetchSurah(currentSurah);
@@ -285,8 +363,18 @@ export const QuranReader: React.FC = () => {
         setExplanation(null);
         setLastPlayedAyah(ayah.number); // Keep button visible while loading
 
+        const dbKey = `${surah?.number}:${ayah.numberInSurah}`;
+        const cachedExplanation = await getAyahExplanation(dbKey);
+
+        if (cachedExplanation) {
+            setExplanation(cachedExplanation);
+            setIsExplanationLoading(false);
+            return;
+        }
+
         const result = await explainAyah(ayah.text, surah?.englishName || '', ayah.numberInSurah);
         setExplanation(result);
+        await addAyahExplanation(dbKey, result);
         setIsExplanationLoading(false);
     };
 
@@ -358,6 +446,10 @@ export const QuranReader: React.FC = () => {
                         explanation={explainingAyah === ayah.number ? explanation : null}
                         isExplanationLoading={explainingAyah === ayah.number && isExplanationLoading}
                         lastPlayedAyah={lastPlayedAyah}
+                        isQueueActive={isAutoplayActive}
+                        isLoading={loadingAyah === ayah.number}
+                        stopAutoplay={stopAutoplay}
+                        isHighlighted={highlightAyah === ayah.numberInSurah}
                     />
                 ))}
             </div>

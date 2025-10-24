@@ -7,13 +7,11 @@ export enum ActiveView {
   QURAN_READER = 'quran-reader',
   PRAYER_TIMES = 'prayer-times',
   QIBLA = 'qibla',
-  TANYA_USTAZ = 'tanya-ustaz',
+  AI_COMPANION = 'ai-companion',
   TAJWEED_COACH = 'tajweed-coach',
   STUDY_PLANNER = 'study-planner',
   IBADAH_TRACKER = 'ibadah-tracker',
   DOA_ZIKR = 'doa-zikr',
-  AI_CHATBOT = 'ai-chatbot',
-  LIVE_CONVERSATION = 'live-conversation',
   JAWI_WRITER = 'jawi-writer',
 }
 
@@ -58,9 +56,17 @@ export interface PrayerTimesData {
 }
 
 export interface ChatMessage {
+  id?: number;
   sender: 'user' | 'ai';
   text: string;
   citation?: string;
+  action?: {
+      label: string;
+      view: ActiveView;
+      params?: { [key: string]: any };
+  }
+  imageUrl?: string;
+  timestamp?: number;
 }
 
 export interface StudyPlanDay {
@@ -71,15 +77,22 @@ export interface StudyPlanDay {
 }
 
 export interface StudyPlan {
+    id?: number;
     plan_title: string;
     duration_days: number;
     daily_plan: StudyPlanDay[];
+    goal: string;
+    duration: string;
+    level: string;
+    timestamp?: number;
 }
 
 export interface PracticeMaterial {
+    id?: number;
     title: string;
     content: string;
     type: 'iqra' | 'quran';
+    timestamp?: number;
 }
 
 export interface AudioTrack {
@@ -101,4 +114,18 @@ export interface AudioPlayerContextType {
     setVolume: (volume: number) => void;
     skip: (seconds: number) => void;
     stop: () => void;
+}
+
+export interface JawiConversion {
+    id?: number;
+    rumi: string;
+    jawi: string;
+    timestamp?: number;
+}
+
+export interface TajweedSession {
+    id?: number;
+    material: PracticeMaterial;
+    transcripts: { sender: 'user' | 'ai', text: string }[];
+    timestamp?: number;
 }
