@@ -1,321 +1,249 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { iqraData } from '../data/iqraData';
-import type { PracticeMaterial } from '../types';
-import { ChevronLeftIcon, ChevronRightIcon, SpeakerWaveIcon, MicrophoneIcon } from './icons/Icons';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import type { PracticeMaterial, IqraPage } from '../types';
+import { ChevronLeftIcon, ChevronRightIcon, PlayIcon, StopIcon, SpeakerWaveIcon } from './icons/Icons';
+import { Button } from './ui/Button';
 import { useAudioPlayer } from '../context/AudioContext';
 import { generateSpeech } from '../services/geminiService';
+import { getCachedIqraData, cacheIqraData } from '../services/dbService';
 
-interface IqraBookViewProps {
-  onSelectMaterial: (material: PracticeMaterial) => void;
-  onBack: () => void;
-}
+// --- Helper Functions for Progress Persistence ---
+const LOCAL_STORAGE_KEY = 'quranPulseIqraProgress';
 
-const uniqueBooks = [...new Set(iqraData.map(p => p.book))];
-
-const InteractiveWord: React.FC<{
-    word: string;
-    onClick: () => void;
-    isLoading: boolean;
-    isPlaying: boolean;
-}> = ({ word, onClick, isLoading, isPlaying }) => {
-    const baseClasses = 'px-3 py-1 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-card-dark focus:ring-primary';
-    let stateClasses = '';
-
-    if (isLoading) {
-        stateClasses = 'bg-gray-200 dark:bg-gray-700 animate-pulse cursor-wait';
-    } else if (isPlaying) {
-        // Use the primary theme color for a very distinct highlight.
-        stateClasses = 'bg-primary text-white font-bold shadow-lg scale-105';
-    } else {
-        stateClasses = 'hover:bg-gray-200 dark:hover:bg-gray-700';
+const saveIqraProgress = (bookNumber: number, pageIndex: number) => {
+    try {
+        const progress = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '{}');
+        progress[bookNumber] = pageIndex;
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(progress));
+    } catch (error) {
+        console.error("Failed to save Iqra progress:", error);
     }
+};
 
+const loadIqraProgress = (bookNumber: number): number | null => {
+    try {
+        const progress = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '{}');
+        return progress[bookNumber] !== undefined ? progress[bookNumber] : null;
+    } catch (error) {
+        console.error("Failed to load Iqra progress:", error);
+        return null;
+    }
+};
+
+
+// --- InteractiveWord Component ---
+const InteractiveWord: React.FC<{ word: string, lineId: number, wordId: number, onWordClick: (lineId: number, wordId: number) => void, isPlaying: boolean, isLoading: boolean }> = 
+({ word, lineId, wordId, onWordClick, isPlaying, isLoading }) => {
     return (
-        <button
-            onClick={onClick}
-            disabled={isLoading}
-            className={`${baseClasses} ${stateClasses}`}
+        <span 
+            onClick={() => onWordClick(lineId, wordId)} 
+            className={`cursor-pointer transition-colors duration-200 rounded-md p-1 ${isPlaying ? 'bg-accent text-background-dark' : 'hover:bg-primary/20'} ${isLoading ? 'animate-pulse' : ''}`}
         >
-            <span className={isLoading ? 'opacity-0' : ''}>{word}</span>
-        </button>
+            {word}
+        </span>
     );
 };
 
 
+// --- Main IqraBookView Component ---
+interface IqraBookViewProps {
+    onSelectMaterial: (material: PracticeMaterial) => void;
+    onBack: () => void;
+}
+
 export const IqraBookView: React.FC<IqraBookViewProps> = ({ onSelectMaterial, onBack }) => {
-  const [selectedBook, setSelectedBook] = useState<number>(1);
-  const [currentPageIndex, setCurrentPageIndex] = useState<number>(0);
-  const [pageInput, setPageInput] = useState<string>('1');
-  
-  const { playTrack, track, isPlaying, currentTime, duration, stop } = useAudioPlayer();
+    const [iqraData, setIqraData] = useState<IqraPage[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [bookNumber, setBookNumber] = useState(1);
+    const [pageIndex, setPageIndex] = useState(0);
 
-  const [loadingWord, setLoadingWord] = useState<string | null>(null);
-  const [playbackQueue, setPlaybackQueue] = useState<string[]>([]);
-
-  const pagesForBook = iqraData.filter(p => p.book === selectedBook);
-  const currentPageData = pagesForBook[currentPageIndex];
-
-  useEffect(() => {
-    if (currentPageData) {
-      setPageInput(currentPageData.page.toString());
-    }
-  }, [currentPageData]);
-
-  const getWordId = useCallback((word: string, lineIndex: number, wordIndex: number) => {
-      return `b${selectedBook}-p${currentPageData.page}-l${lineIndex}-w${wordIndex}-${word}`;
-  }, [selectedBook, currentPageData]);
-
-  const handleWordClick = async (word: string, wordId: string) => {
-    if (loadingWord || (isPlaying && track?.title === wordId)) return;
+    const [loadingLine, setLoadingLine] = useState<number | null>(null);
+    const lineAudioCache = useRef<Map<string, string>>(new Map());
+    const [playbackQueue, setPlaybackQueue] = useState<number[]>([]);
     
-    stop();
-    setPlaybackQueue([]);
+    const { playTrack, stop, isPlaying, track, currentTime, duration } = useAudioPlayer();
 
-    setLoadingWord(wordId);
-    try {
-        const audioData = await generateSpeech(word);
-        if (audioData) {
-            playTrack({ src: audioData, title: wordId, type: 'wav_base64' });
-        }
-    } catch (e) {
-        console.error("Failed to generate speech for word:", e);
-    } finally {
-        setLoadingWord(null);
-    }
-  };
-  
-  const handlePlayPage = () => {
-    if (!currentPageData) return;
-    stop();
-    setPlaybackQueue([]);
-
-    const wordsToPlay: { id: string }[] = [];
-    currentPageData.lines.forEach((line, lineIndex) => {
-      if (line.includes('=')) {
-        const parts = line.split('=');
-        const components = parts[0].trim().split('+');
-        const result = parts[1].trim();
-
-        components.forEach((word, wordIndex) => {
-          wordsToPlay.push({ id: getWordId(word.trim(), lineIndex, wordIndex) });
-        });
-        wordsToPlay.push({ id: getWordId(result, lineIndex, 99) }); // 99 for result
-      } else {
-        line.split(' ').filter(word => word.trim() !== '').forEach((word, wordIndex) => {
-          wordsToPlay.push({ id: getWordId(word, lineIndex, wordIndex) });
-        });
-      }
-    });
-    
-    setPlaybackQueue(wordsToPlay.map(item => item.id));
-  };
-
-  useEffect(() => {
-    const trackFinished = !isPlaying && duration > 0 && Math.abs(currentTime - duration) < 0.2;
-    if (trackFinished && playbackQueue.length > 0 && track?.title === playbackQueue[0]) {
-        setPlaybackQueue(q => q.slice(1));
-    }
-  }, [isPlaying, currentTime, duration, playbackQueue, track]);
-
-  useEffect(() => {
-    const playNextInQueue = async () => {
-        if (playbackQueue.length > 0 && !isPlaying && !loadingWord) {
-            const wordIdToPlay = playbackQueue[0];
-            const word = wordIdToPlay.substring(wordIdToPlay.lastIndexOf('-') + 1);
-            
-            setLoadingWord(wordIdToPlay);
+    // Fetch data on mount, with cache-first strategy
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
             try {
-                const audioData = await generateSpeech(word);
-                if (audioData) {
-                    playTrack({ src: audioData, title: wordIdToPlay, type: 'wav_base64' });
-                } else {
-                    setPlaybackQueue(q => q.slice(1));
+                // 1. Try fetching from cache
+                const cachedData = await getCachedIqraData();
+                if (cachedData && cachedData.length > 0) {
+                    setIqraData(cachedData);
+                    setLoading(false); // Exit loading state early
+                    return; // Data found in cache, no need to fetch from network
                 }
-            } catch (e) {
-                console.error("Failed to generate speech for queue item:", e);
-                setPlaybackQueue(q => q.slice(1));
+
+                // 2. If not in cache, fetch from network
+                const response = await fetch('/data/iqraData.json');
+                if (!response.ok) throw new Error('Network response was not ok');
+                const data = await response.json();
+                setIqraData(data);
+                
+                // 3. Cache the newly fetched data for future use
+                await cacheIqraData(data);
+
+            } catch (err) {
+                setError("Tidak dapat memuatkan data Iqra'. Sila cuba lagi.");
+                console.error(err);
             } finally {
-                setLoadingWord(null);
+                // Ensure loading is set to false even if cached data was found and we returned early.
+                // In the cache-hit case, it's already set, but this handles the network case.
+                setLoading(false);
             }
+        };
+        fetchData();
+    }, []);
+
+    const pagesInBook = iqraData.filter(p => p.book === bookNumber);
+    const currentPageData = pagesInBook[pageIndex];
+    const trackIdPrefix = `iqra-${bookNumber}-${pageIndex}`;
+
+    // Load progress when book changes
+    useEffect(() => {
+        const savedPageIndex = loadIqraProgress(bookNumber);
+        setPageIndex(savedPageIndex || 0);
+    }, [bookNumber]);
+
+    // Save progress when page changes
+    useEffect(() => {
+        if(currentPageData) {
+            saveIqraProgress(bookNumber, pageIndex);
+        }
+    }, [pageIndex, bookNumber, currentPageData]);
+
+    const handleLinePlayback = useCallback(async (lineIndex: number) => {
+        if (!currentPageData) return;
+        const lineText = currentPageData.lines[lineIndex];
+        const trackId = `${trackIdPrefix}-${lineIndex}`;
+
+        if (isPlaying && track?.title === trackId) {
+            stop();
+            return;
+        }
+        stop();
+        
+        if (lineAudioCache.current.has(trackId)) {
+            playTrack({ src: lineAudioCache.current.get(trackId)!, title: trackId, type: 'wav_base64' });
+            return;
+        }
+
+        setLoadingLine(lineIndex);
+        try {
+            const audioData = await generateSpeech(lineText);
+            if (audioData) {
+                lineAudioCache.current.set(trackId, audioData);
+                playTrack({ src: audioData, title: trackId, type: 'wav_base64' });
+            }
+        } finally {
+            setLoadingLine(null);
+        }
+    }, [currentPageData, isPlaying, track, stop, playTrack, trackIdPrefix]);
+
+    const handleWordClick = (lineIndex: number) => {
+        handleLinePlayback(lineIndex);
+    };
+    
+    // Autoplay full page
+    const handlePlayPage = () => {
+        if(playbackQueue.length > 0) {
+            setPlaybackQueue([]);
+            stop();
+            return;
+        }
+        const lineIndices = currentPageData.lines.map((_, index) => index);
+        setPlaybackQueue(lineIndices);
+    };
+
+    // Effect to handle queue progression
+    useEffect(() => {
+        const isTrackFinished = !isPlaying && duration > 0 && Math.abs(currentTime - duration) < 0.2;
+        if (playbackQueue.length > 0 && isTrackFinished) {
+            setPlaybackQueue(q => q.slice(1));
+        }
+    }, [isPlaying, currentTime, duration, playbackQueue]);
+
+    // Effect to play next item in queue
+    useEffect(() => {
+        if (playbackQueue.length > 0 && !isPlaying) {
+            handleLinePlayback(playbackQueue[0]);
+        }
+    }, [playbackQueue, isPlaying, handleLinePlayback]);
+
+    // Navigation
+    const goToPage = (index: number) => {
+        if (index >= 0 && index < pagesInBook.length) {
+            setPageIndex(index);
+            stop();
+            lineAudioCache.current.clear();
+            setPlaybackQueue([]);
         }
     };
-    playNextInQueue();
-  }, [playbackQueue, isPlaying, loadingWord, playTrack]);
 
-  const handleSelectPageForPractice = () => {
-    if (currentPageData) {
-      onSelectMaterial({
-        title: `Iqra' ${currentPageData.book}, Halaman ${currentPageData.page}`,
-        content: currentPageData.lines.join('\n'),
-        type: 'iqra',
-      });
-    }
-  };
-
-  const changeBook = (book: number) => {
-    stop();
-    setPlaybackQueue([]);
-    setSelectedBook(book);
-    setCurrentPageIndex(0);
-  };
-  
-  const goToPageIndex = (index: number) => {
-      if (index >= 0 && index < pagesForBook.length) {
-          stop();
-          setPlaybackQueue([]);
-          setCurrentPageIndex(index);
+    const handleSelectPageForPractice = () => {
+      if (currentPageData) {
+        onSelectMaterial({
+          title: `Iqra' ${currentPageData.book}, Halaman ${currentPageData.page}`,
+          content: currentPageData.lines.join('\n'),
+          type: 'iqra',
+        });
       }
-  }
+    };
+    
+    if (loading) return <div className="text-center p-8">Memuatkan data Iqra'...</div>;
+    if (error) return <div className="text-center p-8 text-primary">{error}</div>;
+    if (!currentPageData) return <div className="text-center p-8">Halaman tidak ditemui.</div>
 
-  const handlePageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPageInput(e.target.value);
-  };
-
-  const handlePageJump = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      const pageNum = parseInt(pageInput, 10);
-      const newIndex = pagesForBook.findIndex(p => p.page === pageNum);
-      if (newIndex !== -1) {
-        goToPageIndex(newIndex);
-      } else {
-        setPageInput(currentPageData.page.toString());
-      }
-      e.currentTarget.blur();
-    }
-  };
-
-  const handleInputBlur = () => {
-    if (currentPageData) {
-      setPageInput(currentPageData.page.toString());
-    }
-  };
-  
-  useEffect(() => {
-      return () => { stop(); }
-  }, [stop]);
-
-  return (
-    <div className="w-full max-w-3xl mx-auto">
-        <button onClick={onBack} className="text-sm mb-4 hover:underline">&larr; Kembali ke Pemilihan Latihan</button>
-        <div className="flex justify-center gap-1 mb-4 p-1 bg-background-light dark:bg-background-dark rounded-lg">
-            {uniqueBooks.map(bookNum => (
-                <button
-                    key={bookNum}
-                    onClick={() => changeBook(bookNum)}
-                    className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${selectedBook === bookNum ? 'bg-primary text-white' : 'hover:bg-primary/10'}`}
-                >
-                    Iqra' {bookNum}
-                </button>
-            ))}
+    return (
+    <div>
+        <Button variant="ghost" onClick={onBack} className="mb-4">
+            <ChevronLeftIcon className="w-4 h-4 mr-2" />
+            Kembali
+        </Button>
+        <div className="flex justify-center mb-4">
+            <div className="flex gap-1 p-1 bg-background-light dark:bg-background-dark rounded-lg">
+                {[1, 2, 3, 4, 5, 6].map(num => (
+                    <Button key={num} onClick={() => setBookNumber(num)} variant={bookNumber === num ? 'secondary' : 'ghost'} size="sm">Iqra' {num}</Button>
+                ))}
+            </div>
         </div>
 
-        {currentPageData && (
-            <div className="bg-white dark:bg-card-dark shadow-lg rounded-lg p-6 sm:p-8 mt-4 border-t-8 border-primary">
-                <div className="flex justify-between items-center pb-4 border-b border-gray-200 dark:border-border-dark">
-                    <div className="font-bold text-lg text-primary">Iqra' {selectedBook}</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Halaman {currentPageData.page}</div>
-                </div>
-
-                <div dir="rtl" className="py-8 font-arabic text-4xl sm:text-5xl leading-loose sm:leading-loose space-y-8 text-gray-800 dark:text-foreground-dark">
-                    {currentPageData.lines.map((line, lineIndex) => {
-                        if (line.includes('=')) {
-                            const parts = line.split('=');
-                            const components = parts[0].trim().split('+');
-                            const result = parts[1].trim();
-                            const resultWordId = getWordId(result, lineIndex, 99); // Use a unique index for the result
-
-                            return (
-                                <div key={lineIndex} className="flex justify-center items-center gap-x-2 sm:gap-x-4 flex-wrap" dir="rtl">
-                                    <InteractiveWord
-                                        key={resultWordId}
-                                        word={result}
-                                        onClick={() => handleWordClick(result, resultWordId)}
-                                        isLoading={loadingWord === resultWordId}
-                                        isPlaying={isPlaying && track?.title === resultWordId}
-                                    />
-                                    <span className="text-3xl text-primary mx-2 font-sans self-center">=</span>
-                                    <div className="flex items-center gap-x-1 sm:gap-x-2">
-                                        {components.map((word, wordIndex) => {
-                                            const wordId = getWordId(word.trim(), lineIndex, wordIndex);
-                                            return (
-                                                <React.Fragment key={wordId}>
-                                                  <InteractiveWord
-                                                      word={word.trim()}
-                                                      onClick={() => handleWordClick(word.trim(), wordId)}
-                                                      isLoading={loadingWord === wordId}
-                                                      isPlaying={isPlaying && track?.title === wordId}
-                                                  />
-                                                  {wordIndex < components.length - 1 && <span className="text-3xl text-primary font-sans self-center">+</span>}
-                                                </React.Fragment>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            );
-                        }
-                        
-                        // Fallback for regular lines
-                        return (
-                            <div key={lineIndex} className="flex justify-center items-center gap-x-4 sm:gap-x-6 flex-wrap">
-                                {line.split(' ').filter(word => word.trim() !== '').map((word, wordIndex) => {
-                                    const wordId = getWordId(word, lineIndex, wordIndex);
-                                    return (
-                                        <InteractiveWord
-                                            key={wordId}
-                                            word={word}
-                                            onClick={() => handleWordClick(word, wordId)}
-                                            isLoading={loadingWord === wordId}
-                                            isPlaying={isPlaying && track?.title === wordId}
-                                        />
-                                    );
-                                })}
-                            </div>
-                        );
-                    })}
-                </div>
-                
-                <div className="pt-4 border-t border-gray-200 dark:border-border-dark">
-                    <div className="flex justify-between items-center mb-6">
-                        <button onClick={() => goToPageIndex(currentPageIndex - 1)} disabled={currentPageIndex === 0} className="p-2 rounded-full hover:bg-foreground-light/5 dark:hover:bg-foreground-dark/5 disabled:opacity-50" aria-label="Halaman Sebelumnya">
-                            <ChevronLeftIcon />
-                        </button>
-                        <div className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400">
-                            <label htmlFor="page-input" className="sr-only">Nombor Halaman</label>
-                            <span>Halaman</span>
-                            <input
-                                id="page-input"
-                                type="text"
-                                inputMode="numeric"
-                                value={pageInput}
-                                onChange={handlePageInputChange}
-                                onKeyDown={handlePageJump}
-                                onBlur={handleInputBlur}
-                                className="w-14 text-center py-1 px-2 rounded-md bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark focus:ring-2 focus:ring-primary focus:outline-none"
-                                aria-label={`Halaman semasa ${currentPageData.page}`}
-                            />
-                            <span>/ {pagesForBook.length}</span>
-                        </div>
-                        <button onClick={() => goToPageIndex(currentPageIndex + 1)} disabled={currentPageIndex === pagesForBook.length - 1} className="p-2 rounded-full hover:bg-foreground-light/5 dark:hover:bg-foreground-dark/5 disabled:opacity-50" aria-label="Halaman Seterusnya">
-                            <ChevronRightIcon />
-                        </button>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row gap-4">
-                        <button onClick={handlePlayPage} disabled={playbackQueue.length > 0 || !!loadingWord} className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-primary/10 text-primary rounded-lg text-sm font-semibold hover:bg-primary/20 transition-colors disabled:opacity-50">
-                            <SpeakerWaveIcon className="w-5 h-5"/>
-                            Dengar Halaman
-                        </button>
-                         <button
-                            onClick={handleSelectPageForPractice}
-                            className="flex-1 flex justify-center items-center gap-2 px-6 py-3 bg-accent text-background-dark rounded-lg font-semibold hover:bg-accent/90 transition-colors"
-                        >
-                            <MicrophoneIcon className="w-5 h-5" />
-                            Praktis Dengan Tutor AI
-                        </button>
-                    </div>
+        <div className="bg-card-light dark:bg-card-dark p-6 rounded-xl shadow-sm">
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-primary">{currentPageData.title || `Iqra' ${bookNumber} - Halaman ${currentPageData.page}`}</h3>
+                <div className="flex gap-2">
+                    <Button onClick={() => goToPage(pageIndex - 1)} disabled={pageIndex === 0} size="icon" variant="ghost"><ChevronLeftIcon /></Button>
+                    <span className="self-center text-sm">{pageIndex + 1} / {pagesInBook.length}</span>
+                    <Button onClick={() => goToPage(pageIndex + 1)} disabled={pageIndex === pagesInBook.length - 1} size="icon" variant="ghost"><ChevronRightIcon /></Button>
                 </div>
             </div>
-        )}
+             <div dir="rtl" className="font-arabic text-3xl text-right leading-loose space-y-4 p-4 border-y border-border-light dark:border-border-dark">
+                {currentPageData.lines.map((line, lineIdx) => (
+                    <p key={lineIdx}>
+                        {line.split(' ').map((word, wordIdx) => (
+                            <InteractiveWord
+                                key={wordIdx}
+                                word={word}
+                                lineId={lineIdx}
+                                wordId={wordIdx}
+                                onWordClick={() => handleWordClick(lineIdx)}
+                                isPlaying={isPlaying && track?.title === `${trackIdPrefix}-${lineIdx}`}
+                                isLoading={loadingLine === lineIdx}
+                            />
+                        ))}
+                    </p>
+                ))}
+            </div>
+            <div className="flex justify-center gap-4 mt-6">
+                 <Button onClick={handlePlayPage} variant="secondary" className="gap-2">
+                    {playbackQueue.length > 0 ? <StopIcon/> : <SpeakerWaveIcon />}
+                    {playbackQueue.length > 0 ? "Berhenti" : "Dengar Halaman"}
+                </Button>
+                <Button onClick={handleSelectPageForPractice}>Praktis Dengan Tutor AI</Button>
+            </div>
+        </div>
     </div>
-  );
+    );
 };

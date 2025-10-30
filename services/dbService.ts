@@ -1,4 +1,4 @@
-import type { ChatMessage, StudyPlan, JawiConversion, TajweedSession, PracticeMaterial } from '../types';
+import type { ChatMessage, StudyPlan, JawiConversion, TajweedSession, IqraPage } from '../types';
 
 const DB_NAME = 'QuranPulseDB';
 const DB_VERSION = 1;
@@ -28,6 +28,9 @@ const initDB = (): Promise<IDBDatabase> => {
       if (!dbInstance.objectStoreNames.contains('chatMessages')) {
         dbInstance.createObjectStore('chatMessages', { keyPath: 'id', autoIncrement: true });
       }
+       if (!dbInstance.objectStoreNames.contains('ustazChatMessages')) {
+        dbInstance.createObjectStore('ustazChatMessages', { keyPath: 'id', autoIncrement: true });
+      }
       if (!dbInstance.objectStoreNames.contains('ayahExplanations')) {
         dbInstance.createObjectStore('ayahExplanations', { keyPath: 'surahAyah' });
       }
@@ -42,6 +45,9 @@ const initDB = (): Promise<IDBDatabase> => {
       if (!dbInstance.objectStoreNames.contains('tajweedSessions')) {
         const store = dbInstance.createObjectStore('tajweedSessions', { keyPath: 'id', autoIncrement: true });
         store.createIndex('timestamp', 'timestamp', { unique: false });
+      }
+      if (!dbInstance.objectStoreNames.contains('iqraCache')) {
+        dbInstance.createObjectStore('iqraCache', { keyPath: 'id' });
       }
     };
   });
@@ -99,6 +105,13 @@ export const addChatMessage = (message: Omit<ChatMessage, 'id' | 'timestamp'>) =
 };
 export const getChatMessages = () => getAllData<ChatMessage>('chatMessages');
 
+// Ustaz Chat Messages
+export const addUstazChatMessage = (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
+    return addData('ustazChatMessages', { ...message, timestamp: Date.now() });
+};
+export const getUstazChatMessages = () => getAllData<ChatMessage>('ustazChatMessages');
+
+
 // Ayah Explanations (as a cache)
 export const addAyahExplanation = (surahAyah: string, explanation: string) => {
     return putData('ayahExplanations', { surahAyah, explanation, timestamp: Date.now() });
@@ -125,3 +138,16 @@ export const addTajweedSession = (session: Omit<TajweedSession, 'id'| 'timestamp
     return addData('tajweedSessions', { ...session, timestamp: Date.now() });
 };
 export const getTajweedSessions = () => getAllData<TajweedSession>('tajweedSessions');
+
+// Iqra Data Cache
+const IQRA_CACHE_KEY = 'iqra-data';
+
+export const cacheIqraData = (data: IqraPage[]): Promise<IDBValidKey> => {
+    return putData('iqraCache', { id: IQRA_CACHE_KEY, data, timestamp: Date.now() });
+};
+
+export const getCachedIqraData = async (): Promise<IqraPage[] | null> => {
+    const result = await getData<{ data: IqraPage[] }>('iqraCache', IQRA_CACHE_KEY);
+    // Optional: Add cache invalidation logic here (e.g., based on timestamp)
+    return result?.data || null;
+};

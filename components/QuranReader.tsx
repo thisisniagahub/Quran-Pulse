@@ -1,78 +1,71 @@
-
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import type { Surah, Ayah, Translation } from '../types';
-import { PlayIcon, ChevronLeftIcon, ChevronRightIcon, PauseIcon, InformationCircleIcon, QueueListIcon } from './icons/Icons';
+import { PlayIcon, ChevronLeftIcon, ChevronRightIcon, PauseIcon, InformationCircleIcon, QueueListIcon, ListBulletIcon, BookIcon } from './icons/Icons';
 import { explainAyah } from '../services/geminiService';
 import { useAudioPlayer } from '../context/AudioContext';
 import { getAyahExplanation, addAyahExplanation } from '../services/dbService';
+import { MushafView } from './MushafView';
+import { getMushafPageData, TOTAL_MUSHAF_PAGES } from '../data/mushafData';
+import { convertToAcademicTransliteration } from '../services/transliterationConverter';
+import { useQuranData } from '../hooks/useQuranData';
+import { useAutoplay } from '../hooks/useAutoplay';
 
-// Hardcoded data for Surah Al-Fatihah as a fallback
-const fallbackSurah: Surah = {
-    number: 1,
-    name: "سُورَةُ ٱلْفَاتِحَةِ",
-    englishName: "Al-Fatihah",
-    englishNameTranslation: "The Opening",
-    revelationType: "Meccan",
-    ayahs: [
-        { number: 1, text: "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ", numberInSurah: 1, juz: 1, manzil: 1, page: 1, ruku: 1, hizbQuarter: 1, sajda: false },
-        { number: 2, text: "ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ", numberInSurah: 2, juz: 1, manzil: 1, page: 1, ruku: 1, hizbQuarter: 1, sajda: false },
-        { number: 3, text: "ٱلرَّحْمَٰنِ ٱلرَّحِيمِ", numberInSurah: 3, juz: 1, manzil: 1, page: 1, ruku: 1, hizbQuarter: 1, sajda: false },
-        { number: 4, text: "مَٰلِكِ يَوْمِ ٱلدِّينِ", numberInSurah: 4, juz: 1, manzil: 1, page: 1, ruku: 1, hizbQuarter: 1, sajda: false },
-        { number: 5, text: "إِيَّاكَ نَعْبُd وَإِيَّاكَ نَسْتَعِينُ", numberInSurah: 5, juz: 1, manzil: 1, page: 1, ruku: 1, hizbQuarter: 1, sajda: false },
-        { number: 6, text: "ٱهْدِنَا ٱلصِّرَٰطَ ٱلْمُسْتَقِيمَ", numberInSurah: 6, juz: 1, manzil: 1, page: 1, ruku: 1, hizbQuarter: 1, sajda: false },
-        { number: 7, text: "صِرَٰطَ ٱلَّذِينَ أَنْعَمْتَ عَلَيْهِِمْ غَيْرِ ٱلْمَغْضُوبِ عَلَيْهِمْ وَلَا ٱلضَّآلِّينَ", numberInSurah: 7, juz: 1, manzil: 1, page: 1, ruku: 1, hizbQuarter: 1, sajda: false }
-    ],
-    translations: {
-        malay: [
-            { text: "Dengan nama Allah, Yang Maha Pemurah, lagi Maha Mengasihani." },
-            { text: "Segala puji tertentu bagi Allah, Tuhan yang memelihara dan mentadbirkan sekalian alam." },
-            { text: "Yang Maha Pemurah, lagi Maha Mengasihani." },
-            { text: "Yang Menguasai pemerintahan hari Pembalasan (hari Akhirat)." },
-            { text: "Engkaulah sahaja (Ya Allah) Yang Kami sembah, dan kepada Engkaulah sahaja kami memohon pertolongan." },
-            { text: "Tunjukilah kami jalan yang lurus." },
-            { text: "Iaitu jalan orang-orang yang Engkau telah kurniakan nikmat kepada mereka, bukan (jalan) orang-orang yang Engkau telah murkai, dan bukan pula (jalan) orang-orang yang sesat." }
-        ],
-        sahih: [
-             { text: "In the name of Allah, the Entirely Merciful, the Especially Merciful." },
-             { text: "[All] praise is [due] to Allah, Lord of the worlds -" },
-             { text: "The Entirely Merciful, the Especially Merciful," },
-             { text: "Sovereign of the Day of Recompense." },
-             { text: "It is You we worship and You we ask for help." },
-             { text: "Guide us to the straight path -" },
-             { text: "The path of those upon whom You have bestowed favor, not of those who have earned [Your] anger or of those who are astray." }
-        ]
-    }
-};
-
-
+// P2 OPTIMIZATION: MEMOIZATION
+// The AyahView component is wrapped in React.memo. This is a performance optimization that
+// prevents the component from re-rendering if its props have not changed. This is very effective
+// in long lists where updating one item (e.g., expanding an explanation) doesn't cause
+// all other items in the list to re-render.
 const AyahView: React.FC<{ 
     ayah: Ayah;
     surah: Surah;
     malay: Translation; 
     sahih: Translation; 
+    transliterationText: Translation;
     translation: 'malay' | 'sahih' | 'none';
+    setTranslation: (value: 'malay' | 'sahih' | 'none') => void;
+    transliterationMode: 'academic' | 'simple' | 'none';
+    setTransliterationMode: (value: 'academic' | 'simple' | 'none') => void;
     onExplain: (ayah: Ayah) => void;
     isExpanded: boolean;
     explanation: string | null;
     isExplanationLoading: boolean;
-    lastPlayedAyah: number | null;
-    isQueueActive: boolean;
-    isLoading: boolean;
+    isAutoplayActive: boolean;
     stopAutoplay: () => void;
     isHighlighted: boolean;
-}> = ({ 
-    ayah, surah, malay, sahih, translation, onExplain, isExpanded, explanation, 
-    isExplanationLoading, lastPlayedAyah, isQueueActive, isLoading, stopAutoplay, isHighlighted
-}) => {
+}> = memo(function AyahView({ 
+    ayah, surah, malay, sahih, transliterationText, translation, setTranslation, 
+    transliterationMode, setTransliterationMode, onExplain, isExpanded, explanation, 
+    isExplanationLoading, isAutoplayActive, stopAutoplay, isHighlighted
+}) {
     const { track, isPlaying, playTrack, togglePlayPause } = useAudioPlayer();
     const ayahRef = useRef<HTMLDivElement>(null);
+
+    // Logic to save/load translation preference for Al-Baqarah, Ayah 7
+    const isTargetAyah = surah.number === 2 && ayah.numberInSurah === 7;
+    const translationPrefKey = 'ayah_2_7_translation_preference';
+
+    useEffect(() => {
+        if (isTargetAyah) {
+            const savedPreference = localStorage.getItem(translationPrefKey);
+            if (savedPreference && ['malay', 'sahih', 'none'].includes(savedPreference) && translation !== savedPreference) {
+                setTranslation(savedPreference as 'malay' | 'sahih' | 'none');
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isTargetAyah, translation, setTranslation]);
+
+    const handleSetTranslation = (newTranslation: 'malay' | 'sahih' | 'none') => {
+        setTranslation(newTranslation);
+        if (isTargetAyah) {
+            localStorage.setItem(translationPrefKey, newTranslation);
+        }
+    };
 
     useEffect(() => {
         if (isHighlighted && ayahRef.current) {
             ayahRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     }, [isHighlighted]);
-
 
     const getAudioSrc = useCallback(() => {
         const surahNumPadded = String(surah.number).padStart(3, '0');
@@ -86,7 +79,6 @@ const AyahView: React.FC<{
         if (isCurrentTrack) {
             togglePlayPause();
         } else {
-            // Any manual play of a new track stops the autoplay queue.
             stopAutoplay();
             playTrack({
                 src: getAudioSrc(),
@@ -95,33 +87,27 @@ const AyahView: React.FC<{
             });
         }
     };
-
-    const showExplainButton = isExpanded || (lastPlayedAyah === ayah.number && !isPlaying);
     
     return (
         <div ref={ayahRef} className={`py-6 border-b border-border-light dark:border-border-dark transition-colors duration-500 ${isHighlighted ? 'bg-primary/10' : ''}`}>
             <div className="flex justify-between items-center mb-4">
                 <span className="text-sm font-semibold text-primary">{ayah.numberInSurah}</span>
                 <div className="flex items-center gap-2">
-                    {showExplainButton && (
-                         <button
-                             onClick={() => onExplain(ayah)}
-                             className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-full hover:bg-foreground-light/10 dark:hover:bg-foreground-dark/10 transition-colors text-foreground-light/80 dark:text-foreground-dark/80"
-                             aria-label="Jelaskan Ayat"
-                         >
-                             <InformationCircleIcon className={`w-5 h-5 ${isExpanded ? 'text-primary' : ''}`} />
-                             <span>{isExpanded ? 'Sembunyikan' : 'Jelaskan Ayat'}</span>
-                         </button>
-                     )}
+                     <button
+                         onClick={() => onExplain(ayah)}
+                         className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-full hover:bg-foreground-light/10 dark:hover:bg-foreground-dark/10 transition-colors text-foreground-light/80 dark:text-foreground-dark/80"
+                         aria-label="Jelaskan Ayat"
+                     >
+                         <InformationCircleIcon className={`w-5 h-5 ${isExpanded ? 'text-primary' : ''}`} />
+                         <span>{isExpanded ? 'Sembunyikan' : 'Jelaskan Ayat'}</span>
+                     </button>
                     <button 
                         onClick={handlePlay}
-                        disabled={isLoading || (isQueueActive && !isCurrentTrack)}
+                        disabled={isAutoplayActive && !isCurrentTrack}
                         className="p-2 rounded-full hover:bg-foreground-light/5 dark:hover:bg-foreground-dark/5 transition-colors disabled:opacity-50"
                         aria-label={isCurrentTrack && isPlaying ? "Pause audio" : "Play audio"}
                     >
-                        {isLoading ? (
-                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
-                        ) : isCurrentTrack && isPlaying ? (
+                        {isCurrentTrack && isPlaying ? (
                             <PauseIcon className="w-5 h-5" />
                         ) : (
                             <PlayIcon className="w-5 h-5" />
@@ -132,8 +118,32 @@ const AyahView: React.FC<{
             <p className="text-right font-arabic text-3xl md:text-4xl leading-relaxed tracking-wide text-foreground-light dark:text-foreground-dark mb-4">
                 {ayah.text}
             </p>
-            {translation === 'malay' && <p className="text-left text-foreground-light/90 dark:text-foreground-dark/90 mt-4">{malay.text}</p>}
-            {translation === 'sahih' && <p className="text-left text-foreground-light/90 dark:text-foreground-dark/90 mt-4">{sahih.text}</p>}
+             <div className="mt-4 p-4 bg-background-light dark:bg-background-dark rounded-lg">
+                <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-semibold text-sm text-primary">Terjemahan</h4>
+                    <div className="flex gap-1 p-0.5 bg-card-light dark:bg-card-dark rounded-full">
+                        <button onClick={() => handleSetTranslation('malay')} className={`px-2 py-0.5 text-xs rounded-full transition-colors ${translation === 'malay' ? 'bg-primary text-white' : ''}`}>Melayu</button>
+                        <button onClick={() => handleSetTranslation('sahih')} className={`px-2 py-0.5 text-xs rounded-full transition-colors ${translation === 'sahih' ? 'bg-primary text-white' : ''}`}>English</button>
+                        <button onClick={() => handleSetTranslation('none')} className={`px-2 py-0.5 text-xs rounded-full transition-colors ${translation === 'none' ? 'bg-primary text-white' : ''}`}>Tutup</button>
+                    </div>
+                </div>
+                {translation === 'malay' && <p className="text-sm text-foreground-light/90 dark:text-foreground-dark/90">{malay.text}</p>}
+                {translation === 'sahih' && <p className="text-sm text-foreground-light/90 dark:text-foreground-dark/90">{sahih.text}</p>}
+                {translation === 'none' && <p className="text-sm text-center text-foreground-light/60 dark:text-foreground-dark/60 italic py-2">Terjemahan disembunyikan.</p>}
+            </div>
+            <div className="mt-4 p-4 bg-background-light dark:bg-background-dark rounded-lg">
+                <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-semibold text-sm text-accent">Transliterasi</h4>
+                    <div className="flex gap-1 p-0.5 bg-card-light dark:bg-card-dark rounded-full">
+                        <button onClick={() => setTransliterationMode('academic')} className={`px-2 py-0.5 text-xs rounded-full transition-colors ${transliterationMode === 'academic' ? 'bg-accent text-background-dark' : ''}`}>Akademik</button>
+                        <button onClick={() => setTransliterationMode('simple')} className={`px-2 py-0.5 text-xs rounded-full transition-colors ${transliterationMode === 'simple' ? 'bg-accent text-background-dark' : ''}`}>Rumi</button>
+                        <button onClick={() => setTransliterationMode('none')} className={`px-2 py-0.5 text-xs rounded-full transition-colors ${transliterationMode === 'none' ? 'bg-accent text-background-dark' : ''}`}>Tutup</button>
+                    </div>
+                </div>
+                {transliterationMode === 'simple' && <p className="text-sm font-sans text-foreground-light/90 dark:text-foreground-dark/90">{transliterationText.text}</p>}
+                {transliterationMode === 'academic' && <p className="font-transliteration text-base text-foreground-light/90 dark:text-foreground-dark/90">{convertToAcademicTransliteration(transliterationText.text)}</p>}
+                {transliterationMode === 'none' && <p className="text-sm text-center text-foreground-light/60 dark:text-foreground-dark/60 italic py-2">Transliterasi disembunyikan.</p>}
+            </div>
              {isExpanded && (
                 <div className="mt-4 p-4 bg-background-light dark:bg-background-dark rounded-lg">
                     {isExplanationLoading ? (
@@ -151,308 +161,197 @@ const AyahView: React.FC<{
             )}
         </div>
     );
-};
+});
+
+
+const surahNames = [ "Al-Fatihah", "Al-Baqarah", "Aal-E-Imran", "An-Nisa", "Al-Ma'idah", "Al-An'am", "Al-A'raf", "Al-Anfal", "At-Tawbah", "Yunus", "Hud", "Yusuf", "Ar-Ra'd", "Ibrahim", "Al-Hijr", "An-Nahl", "Al-Isra", "Al-Kahf", "Maryam", "Taha", "Al-Anbiya", "Al-Hajj", "Al-Mu'minun", "An-Nur", "Al-Furqan", "Ash-Shu'ara", "An-Naml", "Al-Qasas", "Al-Ankabut", "Ar-Rum", "Luqman", "As-Sajdah", "Al-Ahzab", "Saba", "Fatir", "Ya-Sin", "As-Saffat", "Sad", "Az-Zumar", "Ghafir", "Fussilat", "Ash-Shura", "Az-Zukhruf", "Ad-Dukhan", "Al-Jathiyah", "Al-Ahqaf", "Muhammad", "Al-Fath", "Al-Hujurat", "Qaf", "Adh-Dhariyat", "At-Tur", "An-Najm", "Al-Qamar", "Ar-Rahman", "Al-Waqi'ah", "Al-Hadid", "Al-Mujadila", "Al-Hashr", "Al-Mumtahanah", "As-Saf", "Al-Jumu'ah", "Al-Munafiqun", "At-Taghabun", "At-Talaq", "At-Tahrim", "Al-Mulk", "Al-Qalam", "Al-Haqqah", "Al-Ma'arij", "Nuh", "Al-Jinn", "Al-Muzzammil", "Al-Muddaththir", "Al-Qiyamah", "Al-Insan", "Al-Mursalat", "An-Naba", "An-Nazi'at", "'Abasa", "At-Takwir", "Al-Infitar", "Al-Mutaffifin", "Al-Inshiqaq", "Al-Buruj", "At-Tariq", "Al-A'la", "Al-Ghashiyah", "Al-Fajr", "Al-Balad", "Ash-Shams", "Al-Layl", "Ad-Duha", "Ash-Sharh", "At-Tin", "Al-'Alaq", "Al-Qadr", "Al-Bayyinah", "Az-Zalzalah", "Al-'Adiyat", "Al-Qari'ah", "At-Takathur", "Al-'Asr", "Al-Humazah", "Al-Fil", "Quraysh", "Al-Ma'un", "Al-Kawthar", "Al-Kafirun", "An-Nasr", "Al-Masad", "Al-Ikhlas", "Al-Falaq", "An-Nas" ];
+
 
 interface QuranReaderProps {
-    initialSurah: number;
+    initialSurah?: number;
     highlightAyah?: number | null;
     startAutoplay?: boolean;
     onAutoplayHandled?: () => void;
 }
 
-export const QuranReader: React.FC<QuranReaderProps> = ({ initialSurah, highlightAyah = null, startAutoplay = false, onAutoplayHandled }) => {
-    const [surah, setSurah] = useState<Surah | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [currentSurah, setCurrentSurah] = useState(initialSurah);
+export const QuranReader: React.FC<QuranReaderProps> = ({ initialSurah = 1, highlightAyah = null, startAutoplay = false, onAutoplayHandled }) => {
+    const [selectedSurah, setSelectedSurah] = useState(initialSurah);
+    
+    // P2 REFACTOR: State management for data fetching and autoplay is now delegated to custom hooks.
+    // This makes the QuranReader component much cleaner and more focused on UI.
+    const { surah, loading, error } = useQuranData(selectedSurah);
+    const { stop, isPlaying, currentlyPlayingAyahIndex, start: startAutoplayQueue } = useAutoplay(surah, highlightAyah, startAutoplay, onAutoplayHandled);
+
+    // State that remains in the component as it's purely for UI control
     const [translation, setTranslation] = useState<'malay' | 'sahih' | 'none'>('malay');
-    const [explainingAyah, setExplainingAyah] = useState<number | null>(null);
-    const [explanation, setExplanation] = useState<string | null>(null);
-    const [isExplanationLoading, setIsExplanationLoading] = useState(false);
+    const [transliteration, setTransliteration] = useState<'academic' | 'simple' | 'none'>('none');
+    const [expandedAyah, setExpandedAyah] = useState<number | null>(null);
+    const [explanations, setExplanations] = useState<{[key: number]: string}>({});
+    const [explanationLoading, setExplanationLoading] = useState<number | null>(null);
+    const [viewMode, setViewMode] = useState<'list' | 'mushaf'>('list');
+    const [mushafPage, setMushafPage] = useState(1);
+    const [mushafPageData, setMushafPageData] = useState<any | null>(null);
     
-    const [isAutoplayActive, setAutoplayActive] = useState(false);
-    const [playbackQueue, setPlaybackQueue] = useState<Ayah[]>([]);
-    const [loadingAyah, setLoadingAyah] = useState<number | null>(null);
-    const [lastPlayedAyah, setLastPlayedAyah] = useState<number | null>(null);
-    
-    const { track, isPlaying, currentTime, duration, playTrack, stop } = useAudioPlayer();
-    const autoplayNextSurahRef = useRef(false);
-
-    const toggleAutoplay = useCallback(() => {
-        if (isAutoplayActive) {
-            setAutoplayActive(false);
-            setPlaybackQueue([]);
-            stop();
-        } else {
-            if (!surah) return;
-            setAutoplayActive(true);
-            let startingAyahIndex = 0;
-
-            if (track && isPlaying && surah) {
-                const match = track.title.match(/S\. (.*?), Ayat (\d+)/);
-                if (match) {
-                    const trackSurahName = match[1];
-                    const currentAyahNumInSurah = parseInt(match[2], 10);
-                    // Refinement: Ensure the currently playing track belongs to the current surah
-                    // before trying to continue from it.
-                    if (surah.englishName === trackSurahName) {
-                        const idx = surah.ayahs.findIndex(a => a.numberInSurah === currentAyahNumInSurah);
-                        if (idx !== -1) {
-                            startingAyahIndex = idx + 1;
-                        }
-                    }
-                }
-            }
-            
-            const queue = surah.ayahs.slice(startingAyahIndex);
-            if (queue.length > 0) {
-                 setPlaybackQueue(queue);
-            } else if (surah.number < 114) {
-                 autoplayNextSurahRef.current = true;
-                 setCurrentSurah(surah.number + 1);
-            }
-        }
-    }, [isAutoplayActive, surah, track, isPlaying, stop]);
-    
-    const stopAutoplay = useCallback(() => {
-        setAutoplayActive(false);
-        setPlaybackQueue([]);
-    }, []);
-
-    const resetStates = useCallback(() => {
-        stop();
-        setExplainingAyah(null);
-        setExplanation(null);
-        setLastPlayedAyah(null);
-        setPlaybackQueue([]);
-    }, [stop]);
-
-    const fetchSurah = useCallback(async (surahNumber: number) => {
-        setLoading(true);
-        setError(null);
-        if(!autoplayNextSurahRef.current) {
-            resetStates();
-        }
-
-        try {
-            const response = await fetch(`https://api.alquran.cloud/v1/surah/${surahNumber}/editions/quran-uthmani,ms.basmeih,en.sahih`);
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            const data = await response.json();
-            if (data.code !== 200) {
-                throw new Error(data.status);
-            }
-
-            const formattedSurah: Surah = {
-                number: data.data[0].number,
-                name: data.data[0].name,
-                englishName: data.data[0].englishName,
-                englishNameTranslation: data.data[0].englishNameTranslation,
-                revelationType: data.data[0].revelationType,
-                ayahs: data.data[0].ayahs,
-                translations: {
-                    malay: data.data[1].ayahs.map((a: any) => ({ text: a.text })),
-                    sahih: data.data[2].ayahs.map((a: any) => ({ text: a.text })),
-                }
-            };
-            setSurah(formattedSurah);
-            
-            if (autoplayNextSurahRef.current) {
-                autoplayNextSurahRef.current = false;
-                if (isAutoplayActive) {
-                    setPlaybackQueue(formattedSurah.ayahs);
-                }
-            }
-
-        } catch (err) {
-            console.error("Failed to fetch surah:", err);
-            setError("Gagal memuatkan data surah. Memaparkan data luar talian.");
-            setSurah(fallbackSurah);
-            // Refinement: If fetching the next surah fails during autoplay, stop the process gracefully.
-            if (autoplayNextSurahRef.current) {
-                autoplayNextSurahRef.current = false;
-                setAutoplayActive(false);
-            }
-        } finally {
-            setLoading(false);
-        }
-    }, [resetStates, isAutoplayActive]);
-
-    // Effect for handling the startAutoplay prop
+    // Set initial mushaf page when surah loads
     useEffect(() => {
-        // Trigger autoplay only when requested, not already active, and data is ready.
-        if (startAutoplay && !isAutoplayActive && !loading && surah) {
-            toggleAutoplay();
-            onAutoplayHandled?.(); // Notify parent that the action has been handled
+        if(surah?.ayahs.length) {
+            setMushafPage(surah.ayahs[0].page);
         }
-    }, [startAutoplay, isAutoplayActive, loading, surah, toggleAutoplay, onAutoplayHandled]);
-
-    // Effect to unset loading state once playback starts
-    useEffect(() => {
-        if (isPlaying) {
-            setLoadingAyah(null);
-        }
-    }, [isPlaying]);
-
-    // Effect to advance the queue when a track finishes
-    useEffect(() => {
-        const trackFinished = !isPlaying && duration > 0 && Math.abs(currentTime - duration) < 0.2;
-        if (trackFinished && playbackQueue.length > 0 && surah) {
-            const currentAyahInQueue = playbackQueue[0];
-            const surahNumPadded = String(surah.number).padStart(3, '0');
-            const ayahNumPadded = String(currentAyahInQueue.numberInSurah).padStart(3, '0');
-            const expectedSrc = `https://everyayah.com/data/Alafasy_128kbps/${surahNumPadded}${ayahNumPadded}.mp3`;
-            
-            if (track?.src === expectedSrc) {
-                setLastPlayedAyah(currentAyahInQueue.number);
-                setPlaybackQueue(q => q.slice(1));
-            }
-        }
-    }, [isPlaying, currentTime, duration, playbackQueue, track, surah]);
-
-    // Effect to play next in queue or fetch next surah
-    useEffect(() => {
-        const playNextInQueue = () => {
-            if (isAutoplayActive && playbackQueue.length > 0 && !isPlaying && !loadingAyah && surah) {
-                const nextAyah = playbackQueue[0];
-                const surahNumPadded = String(surah.number).padStart(3, '0');
-                const ayahNumPadded = String(nextAyah.numberInSurah).padStart(3, '0');
-                const src = `https://everyayah.com/data/Alafasy_128kbps/${surahNumPadded}${ayahNumPadded}.mp3`;
-
-                if (track?.src === src) return;
-
-                setLoadingAyah(nextAyah.number);
-                playTrack({
-                    src,
-                    title: `S. ${surah.englishName}, Ayat ${nextAyah.numberInSurah}`,
-                    type: 'mp3'
-                });
-            } else if (isAutoplayActive && playbackQueue.length === 0 && !isPlaying && !loadingAyah && surah) {
-                // Queue is empty, try to fetch next surah
-                if (surah.number < 114) {
-                    autoplayNextSurahRef.current = true;
-                    setCurrentSurah(surah.number + 1);
-                } else {
-                    setAutoplayActive(false); // End of Quran
-                }
-            }
-        };
-        playNextInQueue();
-    }, [playbackQueue, isAutoplayActive, isPlaying, loadingAyah, surah, track, playTrack]);
-
-    useEffect(() => {
-        fetchSurah(currentSurah);
-    }, [currentSurah, fetchSurah]);
-
-    useEffect(() => {
-        return () => {
-           stop();
-        }
-    }, [stop]);
+    }, [surah]);
 
     const handleExplain = async (ayah: Ayah) => {
-        if (explainingAyah === ayah.number) {
-            setExplainingAyah(null);
-            setLastPlayedAyah(null); // Clear the trigger to prevent the button from reappearing
+        if (expandedAyah === ayah.number) {
+            setExpandedAyah(null);
             return;
         }
 
-        setExplainingAyah(ayah.number);
-        setIsExplanationLoading(true);
-        setExplanation(null);
-        setLastPlayedAyah(ayah.number); // Keep button visible while loading
+        setExpandedAyah(ayah.number);
 
-        const dbKey = `${surah?.number}:${ayah.numberInSurah}`;
-        const cachedExplanation = await getAyahExplanation(dbKey);
-
-        if (cachedExplanation) {
-            setExplanation(cachedExplanation);
-            setIsExplanationLoading(false);
+        if (explanations[ayah.number]) return;
+        
+        const cachedExplanation = await getAyahExplanation(`${surah?.number}:${ayah.numberInSurah}`);
+        if(cachedExplanation) {
+            setExplanations(prev => ({ ...prev, [ayah.number]: cachedExplanation}));
             return;
         }
 
-        const result = await explainAyah(ayah.text, surah?.englishName || '', ayah.numberInSurah);
-        setExplanation(result);
-        await addAyahExplanation(dbKey, result);
-        setIsExplanationLoading(false);
-    };
-
-    const handleSurahChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setCurrentSurah(Number(e.target.value));
+        setExplanationLoading(ayah.number);
+        try {
+            const explanationText = await explainAyah(ayah.text, surah?.englishName || '', ayah.numberInSurah);
+            setExplanations(prev => ({...prev, [ayah.number]: explanationText}));
+            await addAyahExplanation(`${surah?.number}:${ayah.numberInSurah}`, explanationText);
+        } catch (error) {
+            setExplanations(prev => ({...prev, [ayah.number]: "Maaf, gagal mendapatkan penjelasan."}));
+        } finally {
+            setExplanationLoading(null);
+        }
     };
     
-    const goToSurah = (surahNum: number) => {
-        if (surahNum >= 1 && surahNum <= 114) {
-            setCurrentSurah(surahNum);
+    const handleSurahChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        stop();
+        setSelectedSurah(Number(e.target.value));
+    };
+
+    const handleNextSurah = () => {
+        if (selectedSurah < 114) {
+            stop();
+            setSelectedSurah(selectedSurah + 1);
         }
     };
 
-    if (loading && !autoplayNextSurahRef.current) {
-        return <div className="flex justify-center items-center h-full">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
+    const handlePrevSurah = () => {
+        if (selectedSurah > 1) {
+            stop();
+            setSelectedSurah(selectedSurah - 1);
+        }
+    };
+
+    const handleAutoplay = () => {
+        if(isPlaying) {
+            stop();
+        } else {
+             startAutoplayQueue();
+        }
+    };
+    
+    // Mushaf View Logic
+    useEffect(() => {
+      if (viewMode === 'mushaf') {
+        const data = getMushafPageData(mushafPage);
+        setMushafPageData(data);
+      }
+    }, [mushafPage, viewMode]);
+
+    const handleNextMushafPage = () => {
+        if (mushafPage < TOTAL_MUSHAF_PAGES) setMushafPage(p => p + 1);
+    }
+    
+    const handlePrevMushafPage = () => {
+        if (mushafPage > 1) setMushafPage(p => p - 1);
+    }
+
+    const renderHeader = () => (
+        <div className="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-sm mb-6 sticky top-0 z-10">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                 {viewMode === 'list' ? (
+                     <div className="flex items-center gap-2">
+                        <button onClick={handlePrevSurah} disabled={selectedSurah === 1 || loading} className="p-2 rounded-full hover:bg-foreground-light/5 dark:hover:bg-foreground-dark/5 disabled:opacity-50"><ChevronLeftIcon /></button>
+                        <select value={selectedSurah} onChange={handleSurahChange} disabled={loading} className="bg-transparent text-lg font-bold focus:ring-0 border-0 text-primary w-48 sm:w-64">
+                            {surahNames.map((name, index) => (
+                                <option key={index + 1} value={index + 1}>{index + 1}. {name}</option>
+                            ))}
+                        </select>
+                        <button onClick={handleNextSurah} disabled={selectedSurah === 114 || loading} className="p-2 rounded-full hover:bg-foreground-light/5 dark:hover:bg-foreground-dark/5 disabled:opacity-50"><ChevronRightIcon /></button>
+                    </div>
+                 ) : (
+                    <div className="flex items-center gap-2">
+                        <button onClick={handlePrevMushafPage} disabled={mushafPage === 1} className="p-2 rounded-full hover:bg-foreground-light/5 dark:hover:bg-foreground-dark/5 disabled:opacity-50"><ChevronLeftIcon /></button>
+                        <span className="text-lg font-bold text-primary px-4">Halaman {mushafPage}</span>
+                        <button onClick={handleNextMushafPage} disabled={mushafPage === TOTAL_MUSHAF_PAGES} className="p-2 rounded-full hover:bg-foreground-light/5 dark:hover:bg-foreground-dark/5 disabled:opacity-50"><ChevronRightIcon /></button>
+                    </div>
+                 )}
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1 p-1 bg-background-light dark:bg-background-dark rounded-lg">
+                        <button onClick={() => setViewMode('list')} className={`p-2 rounded-md ${viewMode === 'list' ? 'bg-primary text-white' : ''}`}><ListBulletIcon /></button>
+                        <button onClick={() => setViewMode('mushaf')} className={`p-2 rounded-md ${viewMode === 'mushaf' ? 'bg-primary text-white' : ''}`}><BookIcon /></button>
+                    </div>
+                     <button onClick={handleAutoplay} className="flex items-center gap-2 px-3 py-2 bg-primary/10 text-primary rounded-lg text-sm font-semibold hover:bg-primary/20 transition-colors">
+                        {isPlaying ? <QueueListIcon className="w-5 h-5 animate-pulse" /> : <PlayIcon className="w-5 h-5"/>}
+                        <span className="hidden md:inline">Mainkan Audio</span>
+                    </button>
+                </div>
+            </div>
+            {surah && viewMode === 'list' && (
+                <div className="text-center mt-4 pt-4 border-t border-border-light dark:border-border-dark">
+                    <h2 className="text-3xl font-arabic font-bold text-foreground-light dark:text-foreground-dark">{surah.name}</h2>
+                    <p className="text-sm text-foreground-light/80 dark:text-foreground-dark/80 mt-1">{surah.englishName} • {surah.englishNameTranslation} • {surah.ayahs.length} Ayat • {surah.revelationType}</p>
+                </div>
+            )}
         </div>
+    );
+    
+    if (loading) {
+        return ( <div> {renderHeader()} <div className="text-center p-8">Memuatkan surah...</div> </div> )
+    }
+
+    if (error) {
+        return ( <div> {renderHeader()} <div className="text-center p-8 text-primary">{error}</div> </div> )
     }
 
     return (
-        <div className="max-w-4xl mx-auto">
-            <div className="bg-card-light/80 dark:bg-card-dark/80 backdrop-blur-sm p-4 sm:p-6 rounded-xl shadow-sm mb-6 sticky top-0 z-10">
-                {error && <p className="text-center text-sm text-primary mb-2">{error}</p>}
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <div className="text-center sm:text-left order-2 sm:order-1">
-                        <h2 className="text-2xl font-bold text-primary">{surah?.englishName}</h2>
-                        <p className="text-sm text-foreground-light/80 dark:text-foreground-dark/80">{surah?.englishNameTranslation}</p>
-                    </div>
-                    <div className="flex items-center gap-2 order-1 sm:order-2">
-                        <button onClick={() => goToSurah(currentSurah - 1)} disabled={currentSurah === 1} className="p-2 rounded-md hover:bg-foreground-light/5 dark:hover:bg-foreground-dark/5 disabled:opacity-50">
-                            <ChevronLeftIcon />
-                        </button>
-                        <select onChange={handleSurahChange} value={currentSurah} className="bg-background-light dark:bg-background-dark border-border-light dark:border-border-dark border rounded-md px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-primary text-foreground-light dark:text-foreground-dark">
-                            {Array.from({ length: 114 }, (_, i) => i + 1).map(num => (
-                                <option key={num} value={num}>Surah {num}</option>
-                            ))}
-                        </select>
-                        <button onClick={() => goToSurah(currentSurah + 1)} disabled={currentSurah === 114} className="p-2 rounded-md hover:bg-foreground-light/5 dark:hover:bg-foreground-dark/5 disabled:opacity-50">
-                            <ChevronRightIcon />
-                        </button>
-                    </div>
-                    <div className="flex gap-1 p-1 bg-background-light dark:bg-background-dark rounded-lg order-3">
-                        <button onClick={toggleAutoplay} className={`p-2 rounded-md ${isAutoplayActive ? 'text-primary bg-card-light dark:bg-card-dark shadow-sm' : ''}`} aria-label="Autoplay">
-                            <QueueListIcon className="w-5 h-5" />
-                        </button>
-                        <button onClick={() => setTranslation('malay')} className={`px-3 py-1 text-sm rounded-md ${translation === 'malay' ? 'bg-card-light dark:bg-card-dark shadow-sm' : ''}`}>Melayu</button>
-                        <button onClick={() => setTranslation('sahih')} className={`px-3 py-1 text-sm rounded-md ${translation === 'sahih' ? 'bg-card-light dark:bg-card-dark shadow-sm' : ''}`}>English</button>
-                        <button onClick={() => setTranslation('none')} className={`px-3 py-1 text-sm rounded-md ${translation === 'none' ? 'bg-card-light dark:bg-card-dark shadow-sm' : ''}`}>Off</button>
-                    </div>
-                </div>
-            </div>
+        <div>
+            {renderHeader()}
             
-            <div className="bg-card-light dark:bg-card-dark p-4 sm:p-8 rounded-xl shadow-sm">
-                {surah && (
-                    <div className="text-center mb-8">
-                        <p className="font-arabic text-3xl">{surah.name}</p>
-                    </div>
-                )}
-                {surah?.ayahs.map((ayah, index) => (
-                    <AyahView 
-                        key={ayah.number} 
-                        ayah={ayah}
-                        surah={surah}
-                        malay={surah.translations.malay[index]} 
-                        sahih={surah.translations.sahih[index]} 
-                        translation={translation}
-                        onExplain={handleExplain}
-                        isExpanded={explainingAyah === ayah.number}
-                        explanation={explainingAyah === ayah.number ? explanation : null}
-                        isExplanationLoading={explainingAyah === ayah.number && isExplanationLoading}
-                        lastPlayedAyah={lastPlayedAyah}
-                        isQueueActive={isAutoplayActive}
-                        isLoading={loadingAyah === ayah.number}
-                        stopAutoplay={stopAutoplay}
-                        isHighlighted={highlightAyah === ayah.numberInSurah}
-                    />
-                ))}
-            </div>
+            {viewMode === 'mushaf' ? (
+                <MushafView pageData={mushafPageData} />
+            ) : surah ? (
+                <div className="bg-card-light dark:bg-card-dark p-4 sm:p-6 rounded-xl shadow-sm">
+                    {surah.ayahs.map((ayah, index) => (
+                        <AyahView
+                            key={ayah.number}
+                            ayah={ayah}
+                            surah={surah}
+                            malay={surah.translations.malay[index]}
+                            sahih={surah.translations.sahih[index]}
+                            transliterationText={surah.translations.transliteration[index]}
+                            translation={translation}
+                            setTranslation={setTranslation}
+                            transliterationMode={transliteration}
+                            setTransliterationMode={setTransliteration}
+                            onExplain={handleExplain}
+                            isExpanded={expandedAyah === ayah.number}
+                            explanation={explanations[ayah.number] || null}
+                            isExplanationLoading={explanationLoading === ayah.number}
+                            isAutoplayActive={isPlaying}
+                            stopAutoplay={stop}
+                            isHighlighted={
+                                (highlightAyah !== null && ayah.numberInSurah === highlightAyah && !isPlaying) ||
+                                (isPlaying && currentlyPlayingAyahIndex === index)
+                            }
+                        />
+                    ))}
+                </div>
+            ) : null}
         </div>
     );
 };

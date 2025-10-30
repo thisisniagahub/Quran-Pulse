@@ -1,180 +1,168 @@
-import React, { createContext, useState, useContext, useRef, useEffect, useCallback, ReactNode } from 'react';
-import type { AudioPlayerContextType, AudioTrack } from '../types';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
+import { AudioContextType, AudioTrack } from '../types';
 import { createWavBlobUrl } from '../utils/audio';
 
-const AudioContext = createContext<AudioPlayerContextType | undefined>(undefined);
-
-export const useAudioPlayer = (): AudioPlayerContextType => {
-    const context = useContext(AudioContext);
-    if (!context) {
-        throw new Error('useAudioPlayer must be used within an AudioProvider');
-    }
-    return context;
-};
+const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
 export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+    const audioRef = useRef<HTMLAudioElement>(null);
+    const currentObjectUrl = useRef<string | null>(null);
+
     const [track, setTrack] = useState<AudioTrack | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
-    const [volume, setVolumeState] = useState(1);
     const [error, setError] = useState<string | null>(null);
+    const [lastTrack, setLastTrack] = useState<AudioTrack | null>(null);
 
-    const audioRef = useRef<HTMLAudioElement | null>(null);
-    const blobUrlRef = useRef<string | null>(null);
+    const cleanupObjectUrl = useCallback(() => {
+        if (currentObjectUrl.current) {
+            URL.revokeObjectURL(currentObjectUrl.current);
+            currentObjectUrl.current = null;
+        }
+    }, []);
 
-    // Effect for initializing and cleaning up the single audio element
     useEffect(() => {
-        audioRef.current = new Audio();
+        // General cleanup on unmount
+        return () => cleanupObjectUrl();
+    }, [cleanupObjectUrl]);
+
+    useEffect(() => {
         const audio = audioRef.current;
+        if (!audio) return;
 
         const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
-        const handleLoadedMetadata = () => setDuration(audio.duration);
-        const handleEnded = () => setIsPlaying(false);
-        const handleError = () => {
-            const mediaError = audio.error;
-            console.error("Audio play failed:", mediaError);
-            if (mediaError) {
-                console.error(`Error code: ${mediaError.code}, Message: ${mediaError.message}`);
-            }
-            setTrack(null);
-            setIsPlaying(false);
-            setError('Audio tidak dapat dimainkan.');
-        };
+        const handleDurationChange = () => setDuration(audio.duration);
         const handlePlay = () => setIsPlaying(true);
         const handlePause = () => setIsPlaying(false);
+        const handleEnded = () => setIsPlaying(false);
+        const handleError = () => {
+            console.error('Audio Error:', audio.error);
+            setError('Ralat audio: Gagal memuatkan trek.');
+            setIsPlaying(false);
+            setLastTrack(track);
+            setTrack(null);
+        };
 
         audio.addEventListener('timeupdate', handleTimeUpdate);
-        audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-        audio.addEventListener('ended', handleEnded);
-        audio.addEventListener('error', handleError);
+        audio.addEventListener('durationchange', handleDurationChange);
+        audio.addEventListener('loadedmetadata', handleDurationChange);
         audio.addEventListener('play', handlePlay);
         audio.addEventListener('pause', handlePause);
-        
-        // Cleanup function
+        audio.addEventListener('ended', handleEnded);
+        audio.addEventListener('error', handleError);
+
         return () => {
             audio.removeEventListener('timeupdate', handleTimeUpdate);
-            audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-            audio.removeEventListener('ended', handleEnded);
-            audio.removeEventListener('error', handleError);
+            audio.removeEventListener('durationchange', handleDurationChange);
+            audio.removeEventListener('loadedmetadata', handleDurationChange);
             audio.removeEventListener('play', handlePlay);
             audio.removeEventListener('pause', handlePause);
-            audio.pause();
-            if (blobUrlRef.current) {
-                URL.revokeObjectURL(blobUrlRef.current);
-            }
+            audio.removeEventListener('ended', handleEnded);
+            audio.removeEventListener('error', handleError);
         };
+    }, [track]);
+
+    const dismissError = useCallback(() => {
+        setError(null);
+        setLastTrack(null);
     }, []);
 
     const playTrack = useCallback((newTrack: AudioTrack) => {
-        if (!audioRef.current) return;
-
-        setError(null);
-        setCurrentTime(0);
-        setDuration(0);
-        setTrack(newTrack);
-
         const audio = audioRef.current;
-        audio.volume = volume;
+        if (!audio) return;
 
-        if (blobUrlRef.current) {
-            URL.revokeObjectURL(blobUrlRef.current);
-            blobUrlRef.current = null;
-        }
+        cleanupObjectUrl();
+        dismissError();
+        setTrack(newTrack);
 
         let audioSrc = newTrack.src;
         if (newTrack.type === 'wav_base64') {
             try {
-                const url = createWavBlobUrl(newTrack.src);
-                blobUrlRef.current = url;
-                audioSrc = url;
+                audioSrc = createWavBlobUrl(newTrack.src);
+                currentObjectUrl.current = audioSrc;
             } catch (e) {
                 console.error("Error creating WAV blob URL:", e);
-                setError("Gagal memproses audio.");
+                setError("Gagal memproses data audio.");
+                setLastTrack(newTrack);
+                setTrack(null);
                 return;
             }
         }
-        
-        if (audio.src !== audioSrc) {
-            audio.src = audioSrc;
-        }
-        
-        const playPromise = audio.play();
-        if (playPromise !== undefined) {
-            playPromise.catch(err => {
-                // The 'error' event listener will handle the state update
-                console.error("Error starting audio track:", err);
-            });
-        }
-    }, [volume]);
-    
+
+        audio.src = audioSrc;
+        audio.load();
+        audio.play().catch(e => {
+            console.error('Playback failed:', e);
+            setError('Gagal memainkan audio.');
+            setLastTrack(newTrack);
+            setTrack(null);
+        });
+    }, [cleanupObjectUrl, dismissError]);
+
     const togglePlayPause = useCallback(() => {
-        if (!audioRef.current || !track || error) return;
-        
-        if (audioRef.current.paused) {
-            audioRef.current.play().catch(err => {
-                console.error("Error resuming audio track:", err);
-            });
+        const audio = audioRef.current;
+        if (!audio || !track) return;
+
+        if (isPlaying) {
+            audio.pause();
         } else {
-            audioRef.current.pause();
+            audio.play().catch(e => {
+                console.error('Playback failed on toggle:', e);
+                setError('Gagal memainkan audio.');
+                setLastTrack(track);
+                setTrack(null);
+            });
         }
-    }, [track, error]);
+    }, [isPlaying, track]);
+
+    const stop = useCallback(() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        audio.pause();
+        audio.removeAttribute('src'); // Use removeAttribute instead of setting to ''
+        audio.load();
+        
+        cleanupObjectUrl();
+        setTrack(null);
+        setCurrentTime(0);
+        setDuration(0);
+        setIsPlaying(false);
+        dismissError();
+    }, [cleanupObjectUrl, dismissError]);
 
     const seek = useCallback((time: number) => {
-        if (audioRef.current && isFinite(time)) {
-            audioRef.current.currentTime = time;
+        const audio = audioRef.current;
+        if (audio && isFinite(time)) {
+            audio.currentTime = time;
             setCurrentTime(time);
         }
     }, []);
-    
-    const skip = useCallback((seconds: number) => {
-        if (audioRef.current && isFinite(duration)) {
-            const newTime = audioRef.current.currentTime + seconds;
-            seek(Math.max(0, Math.min(duration, newTime)));
-        }
-    }, [duration, seek]);
 
-    const setVolume = useCallback((newVolume: number) => {
-        setVolumeState(newVolume);
-        if (audioRef.current) {
-            audioRef.current.volume = newVolume;
+    const retry = useCallback(() => {
+        if (lastTrack) {
+            playTrack(lastTrack);
         }
-    }, []);
+    }, [lastTrack, playTrack]);
 
-    const stop = useCallback(() => {
-        if (audioRef.current) {
-            audioRef.current.pause();
-            // audioRef.current.src = ''; // This causes a race condition and "Empty src" errors.
-        }
-        if (blobUrlRef.current) {
-            URL.revokeObjectURL(blobUrlRef.current);
-            blobUrlRef.current = null;
-        }
-        setTrack(null);
-        setIsPlaying(false);
-        setCurrentTime(0);
-        setDuration(0);
-        setError(null);
-    }, []);
-
-    const value: AudioPlayerContextType = {
-        track,
-        isPlaying,
-        currentTime,
-        duration,
-        volume,
-        error,
-        playTrack,
-        togglePlayPause,
-        seek,
-        setVolume,
-        skip,
-        stop
+    const value: AudioContextType = {
+        track, isPlaying, currentTime, duration, error,
+        playTrack, togglePlayPause, stop, seek, retry, dismissError,
     };
 
     return (
         <AudioContext.Provider value={value}>
+            <audio ref={audioRef} />
             {children}
         </AudioContext.Provider>
     );
+};
+
+export const useAudioPlayer = (): AudioContextType => {
+    const context = useContext(AudioContext);
+    if (context === undefined) {
+        throw new Error('useAudioPlayer must be used within an AudioProvider');
+    }
+    return context;
 };

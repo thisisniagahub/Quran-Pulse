@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PlusIcon, MinusIcon, RefreshIcon } from './icons/Icons';
 
 const duas = [
@@ -35,26 +34,24 @@ const duas = [
     },
 ];
 
-const DoaCard: React.FC<{ doa: typeof duas[0] }> = ({ doa }) => {
-    const [currentCount, setCurrentCount] = useState(0);
+const DOA_COUNTS_STORAGE_KEY = 'quranPulseDoaCounts';
 
+// The DoaCard is now a "controlled component" that receives its state and handlers from the parent.
+const DoaCard: React.FC<{ 
+    doa: typeof duas[0];
+    currentCount: number;
+    onIncrement: () => void;
+    onDecrement: () => void;
+    onReset: () => void;
+}> = ({ doa, currentCount, onIncrement, onDecrement, onReset }) => {
+    
     const handleIncrement = () => {
         if (currentCount < doa.count) {
-            setCurrentCount(currentCount + 1);
+            onIncrement();
         }
     };
     
-    const handleDecrement = () => {
-        if (currentCount > 0) {
-            setCurrentCount(currentCount - 1);
-        }
-    }
-    
-    const handleReset = () => {
-        setCurrentCount(0);
-    }
-    
-    const isCompleted = currentCount === doa.count;
+    const isCompleted = currentCount >= doa.count;
 
     return (
         <div className={`bg-card-light dark:bg-card-dark p-6 rounded-xl shadow-sm transition-all duration-300 ${isCompleted ? 'border-2 border-accent' : ''}`}>
@@ -64,8 +61,8 @@ const DoaCard: React.FC<{ doa: typeof duas[0] }> = ({ doa }) => {
             
             <div className="mt-6 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <button onClick={handleReset} className="p-2 rounded-full hover:bg-white/10"><RefreshIcon /></button>
-                    <button onClick={handleDecrement} className="p-2 rounded-full hover:bg-white/10"><MinusIcon /></button>
+                    <button onClick={onReset} className="p-2 rounded-full hover:bg-white/10"><RefreshIcon /></button>
+                    <button onClick={onDecrement} className="p-2 rounded-full hover:bg-white/10"><MinusIcon /></button>
                 </div>
                 <div 
                     onClick={handleIncrement}
@@ -84,6 +81,33 @@ const DoaCard: React.FC<{ doa: typeof duas[0] }> = ({ doa }) => {
 };
 
 export const DoaList: React.FC = () => {
+    // The parent component now manages the state for all cards.
+    const [counts, setCounts] = useState<{[key: string]: number}>(() => {
+        try {
+            const savedCounts = localStorage.getItem(DOA_COUNTS_STORAGE_KEY);
+            return savedCounts ? JSON.parse(savedCounts) : {};
+        } catch (error) {
+            console.error("Failed to load doa counts from localStorage", error);
+            return {};
+        }
+    });
+
+    // Save to localStorage whenever the counts state changes.
+    useEffect(() => {
+        try {
+            localStorage.setItem(DOA_COUNTS_STORAGE_KEY, JSON.stringify(counts));
+        } catch (error) {
+            console.error("Failed to save doa counts to localStorage", error);
+        }
+    }, [counts]);
+
+    const handleUpdateCount = (title: string, newCount: number) => {
+        setCounts(prevCounts => ({
+            ...prevCounts,
+            [title]: newCount
+        }));
+    };
+
     return (
         <div className="max-w-2xl mx-auto">
             <div className="text-center mb-8">
@@ -91,9 +115,19 @@ export const DoaList: React.FC = () => {
                 <p className="text-foreground-light/80">Koleksi doa masnun dan zikir harian untuk amalan anda.</p>
             </div>
             <div className="space-y-6">
-                {duas.map((doa, index) => (
-                    <DoaCard key={index} doa={doa} />
-                ))}
+                {duas.map((doa, index) => {
+                    const currentCount = counts[doa.title] || 0;
+                    return (
+                        <DoaCard 
+                            key={index} 
+                            doa={doa} 
+                            currentCount={currentCount}
+                            onIncrement={() => handleUpdateCount(doa.title, currentCount + 1)}
+                            onDecrement={() => handleUpdateCount(doa.title, Math.max(0, currentCount - 1))}
+                            onReset={() => handleUpdateCount(doa.title, 0)}
+                        />
+                    )
+                })}
             </div>
         </div>
     );

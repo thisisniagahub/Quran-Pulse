@@ -1,89 +1,68 @@
 import React from 'react';
 import { useAudioPlayer } from '../context/AudioContext';
-import { PlayIcon, PauseIcon, BackwardIcon, ForwardIcon, SpeakerWaveIcon, SpeakerXMarkIcon, InformationCircleIcon } from './icons/Icons';
+import { PlayIcon, PauseIcon, StopIcon, XIcon, RefreshIcon } from './icons/Icons';
+import { Button } from './ui/Button';
 
 export const GlobalAudioPlayer: React.FC = () => {
-    const { track, isPlaying, currentTime, duration, volume, error, togglePlayPause, seek, setVolume, skip } = useAudioPlayer();
+    // P3 FIX: Destructure error state and recovery functions from context.
+    const { track, isPlaying, currentTime, duration, error, togglePlayPause, seek, stop, retry, dismissError } = useAudioPlayer();
 
     if (!track && !error) {
-        return null; // Don't render anything if there's no active track or error
+        return <div className="h-10"></div>; // Maintain layout height
     }
 
-    const formatTime = (seconds: number) => {
-        if (isNaN(seconds) || seconds === Infinity) return '0:00';
-        const floorSeconds = Math.floor(seconds);
-        const min = Math.floor(floorSeconds / 60);
-        const sec = floorSeconds % 60;
-        return `${min}:${sec < 10 ? '0' : ''}${sec}`;
+    const formatTime = (time: number) => {
+        if (isNaN(time) || time === Infinity) return '0:00';
+        const minutes = Math.floor(time / 60);
+        const seconds = Math.floor(time % 60);
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     };
 
-    const getTrackDisplayName = () => {
-        if (error) return "Ralat Audio";
-        if (!track) return "";
-        if (track.title.startsWith('tts-')) {
-            return track.title.includes('ustaz') ? "Jawapan Ustaz AI" : "Jawapan Sobat AI";
-        }
-        return track.title;
+    const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+        seek(Number(e.target.value));
     };
+
+    // P3 FIX: Render a dedicated error UI when an error occurs.
+    if (error) {
+        return (
+            <div className="flex items-center gap-2 w-full bg-destructive/10 p-2 rounded-lg">
+                <p className="flex-1 text-sm font-semibold text-red-500 truncate">{error}</p>
+                <Button onClick={retry} variant="ghost" size="sm" className="text-red-500 hover:bg-red-500/10">
+                    <RefreshIcon className="w-4 h-4 mr-1" /> Cuba Lagi
+                </Button>
+                <Button onClick={dismissError} variant="ghost" size="icon" aria-label="Tutup" className="text-red-500 hover:bg-red-500/10">
+                    <XIcon className="w-5 h-5" />
+                </Button>
+            </div>
+        );
+    }
+    
+    if (!track) return null; // Should not happen if error is null, but for type safety
 
     return (
-        <div className="w-full flex items-center gap-3 text-foreground-light dark:text-foreground-dark">
-            <div className="flex items-center gap-2">
-                <button onClick={() => skip(-10)} disabled={!!error} className="p-1 hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"><BackwardIcon className="w-5 h-5" /></button>
-                <button onClick={togglePlayPause} disabled={!!error} className="p-2 bg-primary text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed">
-                    {isPlaying ? <PauseIcon className="w-5 h-5" /> : <PlayIcon className="w-5 h-5" />}
-                </button>
-                <button onClick={() => skip(10)} disabled={!!error} className="p-1 hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"><ForwardIcon className="w-5 h-5" /></button>
-            </div>
-            
-            {error ? (
-                <div className="flex-grow flex items-center justify-center gap-2 text-primary">
-                    <InformationCircleIcon className="w-5 h-5"/>
-                    <span className="text-sm font-semibold">{error}</span>
-                </div>
-            ) : (
-                <>
-                    <div className="flex-grow flex items-center gap-3">
-                        <span className="text-xs w-10 text-right">{formatTime(currentTime)}</span>
-                        <div className="w-full bg-border-light dark:bg-border-dark rounded-full h-1.5 group">
-                            <input
-                                type="range"
-                                min="0"
-                                max={duration || 1}
-                                value={currentTime}
-                                onChange={(e) => seek(Number(e.target.value))}
-                                className="w-full h-full bg-transparent cursor-pointer appearance-none [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
-                                style={{
-                                    background: `linear-gradient(to right, #e63968 ${duration > 0 ? (currentTime / duration) * 100 : 0}%, #415A77 ${duration > 0 ? (currentTime / duration) * 100 : 0}%)`
-                                }}
-                            />
-                        </div>
-                        <span className="text-xs w-10">{formatTime(duration)}</span>
-                    </div>
-                     <div className="hidden md:flex flex-col flex-shrink-0 w-40 ml-2">
-                        <span className="text-sm font-semibold truncate" title={getTrackDisplayName()}>{getTrackDisplayName()}</span>
-                        <span className="text-xs text-foreground-light/70 dark:text-foreground-dark/70">QuranPulse Audio</span>
-                    </div>
-                </>
-            )}
+        <div className="flex items-center gap-2 w-full">
+             <Button onClick={togglePlayPause} variant="ghost" size="icon" aria-label={isPlaying ? "Pause" : "Play"}>
+                {isPlaying ? <PauseIcon className="w-5 h-5" /> : <PlayIcon className="w-5 h-5" />}
+            </Button>
 
-             <div className="hidden md:flex items-center gap-2 w-32">
-                <button onClick={() => setVolume(volume > 0 ? 0 : 1)}>
-                    {volume > 0 ? <SpeakerWaveIcon className="w-5 h-5" /> : <SpeakerXMarkIcon className="w-5 h-5" />}
-                </button>
-                <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    value={volume}
-                    onChange={(e) => setVolume(Number(e.target.value))}
-                    className="w-full h-1.5 bg-border-light dark:bg-border-dark rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
-                    style={{
-                        background: `linear-gradient(to right, #e63968 ${volume * 100}%, #415A77 ${volume * 100}%)`
-                    }}
-                />
+            <div className="flex-1 flex flex-col justify-center min-w-0">
+                <p className="text-sm font-semibold truncate text-foreground-light dark:text-foreground-dark">{track.title}</p>
+                 <div className="flex items-center gap-2 text-xs text-foreground-light/70 dark:text-foreground-dark/70">
+                    <span>{formatTime(currentTime)}</span>
+                    <input
+                        type="range"
+                        min="0"
+                        max={duration || 0}
+                        value={currentTime}
+                        onChange={handleSeek}
+                        className="w-full h-1 bg-background-light dark:bg-background-dark rounded-lg appearance-none cursor-pointer accent-primary"
+                    />
+                    <span>{formatTime(duration)}</span>
+                </div>
             </div>
+             <Button onClick={stop} variant="ghost" size="icon" aria-label="Stop playback">
+                <StopIcon className="w-5 h-5" />
+            </Button>
         </div>
     );
 };

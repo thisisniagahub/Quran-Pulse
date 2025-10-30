@@ -7,6 +7,7 @@ export const TajweedTutor: React.FC = () => {
     const [practiceMaterial, setPracticeMaterial] = useState<PracticeMaterial | null>(null);
 
     if (!practiceMaterial) {
+        // FIX: Corrected typo from setPracticematerial to setPracticeMaterial
         return <TajweedSelector onSelectMaterial={setPracticeMaterial} />;
     }
 
