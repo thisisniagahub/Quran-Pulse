@@ -19,6 +19,7 @@ const InteractiveLesson: React.FC = () => {
   const [xpEarned, setXpEarned] = useState(0);
   const [showFeedback, setShowFeedback] = useState(false);
   const [streak, setStreak] = useState(0);
+  const [accuracyScore, setAccuracyScore] = useState<number | null>(null);
 
   const questions: Question[] = [
     {
@@ -96,6 +97,7 @@ const InteractiveLesson: React.FC = () => {
     setShowFeedback(false);
     setSelectedAnswer(null);
     setIsCorrect(null);
+    setAccuracyScore(null); // Reset accuracy score
     
     if (hearts === 0) {
         alert("Anda kehabisan nyawa. Cuba lagi!");
@@ -124,6 +126,9 @@ const InteractiveLesson: React.FC = () => {
   const startRecording = () => {
     alert('🎤 Mikrofon diaktifkan. Mula baca... (fungsi demo)');
     setTimeout(() => {
+      // Simulate a high accuracy score for the demo
+      const randomAccuracy = Math.floor(Math.random() * (100 - 85 + 1)) + 85; // Random score between 85 and 100
+      setAccuracyScore(randomAccuracy);
       handleAnswer(0); // Auto-correct for demo
     }, 2000);
   };
@@ -234,7 +239,15 @@ const InteractiveLesson: React.FC = () => {
               {isCorrect ? (
                 <div>
                   <h2 className="text-3xl font-bold text-green-500 mb-2">Betul! 🎉</h2>
-                  <p className="text-green-600 dark:text-green-400 text-lg">Anda peroleh +{question.xp} XP</p>
+                  {question.type === 'speaking' && accuracyScore !== null ? (
+                    <p className="text-green-600 dark:text-green-400 text-lg">
+                      Ketepatan: <span className="font-bold">{accuracyScore}%</span>
+                    </p>
+                  ) : (
+                    <p className="text-green-600 dark:text-green-400 text-lg">
+                      Anda peroleh +{question.xp} XP
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div>

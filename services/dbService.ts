@@ -1,153 +1,117 @@
-import type { ChatMessage, StudyPlan, JawiConversion, TajweedSession, IqraPage } from '../types';
+import type { ChatMessage, StudyPlan, TajweedSession, JawiConversion, IqraPracticeSession } from '../types';
 
-const DB_NAME = 'QuranPulseDB';
-const DB_VERSION = 1;
-let db: IDBDatabase | null = null;
+const DB_NAME = 'quranPulseDB';
+const DB_VERSION = 3; // Version incremented for schema changes
 
-const initDB = (): Promise<IDBDatabase> => {
-  return new Promise((resolve, reject) => {
-    if (db) {
-      return resolve(db);
-    }
+const openDB = (): Promise<IDBDatabase> => {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onerror = () => {
+            console.error('IndexedDB error:', request.error);
+            reject(request.error);
+        };
 
-    request.onerror = (event) => {
-      console.error('Database error:', request.error);
-      reject('Error opening database');
-    };
+        request.onsuccess = () => {
+            resolve(request.result);
+        };
 
-    request.onsuccess = (event) => {
-      db = request.result;
-      resolve(db);
-    };
-
-    request.onupgradeneeded = (event) => {
-      const dbInstance = (event.target as IDBOpenDBRequest).result;
-
-      if (!dbInstance.objectStoreNames.contains('chatMessages')) {
-        dbInstance.createObjectStore('chatMessages', { keyPath: 'id', autoIncrement: true });
-      }
-       if (!dbInstance.objectStoreNames.contains('ustazChatMessages')) {
-        dbInstance.createObjectStore('ustazChatMessages', { keyPath: 'id', autoIncrement: true });
-      }
-      if (!dbInstance.objectStoreNames.contains('ayahExplanations')) {
-        dbInstance.createObjectStore('ayahExplanations', { keyPath: 'surahAyah' });
-      }
-      if (!dbInstance.objectStoreNames.contains('studyPlans')) {
-        const store = dbInstance.createObjectStore('studyPlans', { keyPath: 'id', autoIncrement: true });
-        store.createIndex('timestamp', 'timestamp', { unique: false });
-      }
-      if (!dbInstance.objectStoreNames.contains('jawiConversions')) {
-         const store = dbInstance.createObjectStore('jawiConversions', { keyPath: 'id', autoIncrement: true });
-         store.createIndex('timestamp', 'timestamp', { unique: false });
-      }
-      if (!dbInstance.objectStoreNames.contains('tajweedSessions')) {
-        const store = dbInstance.createObjectStore('tajweedSessions', { keyPath: 'id', autoIncrement: true });
-        store.createIndex('timestamp', 'timestamp', { unique: false });
-      }
-      if (!dbInstance.objectStoreNames.contains('iqraCache')) {
-        dbInstance.createObjectStore('iqraCache', { keyPath: 'id' });
-      }
-    };
-  });
-};
-
-// Generic Add/Get Functions
-const addData = <T>(storeName: string, data: T): Promise<number> => {
-  return new Promise(async (resolve, reject) => {
-    const db = await initDB();
-    const transaction = db.transaction(storeName, 'readwrite');
-    const store = transaction.objectStore(storeName);
-    const request = store.add(data);
-    request.onsuccess = () => resolve(request.result as number);
-    request.onerror = () => reject(request.error);
-  });
-};
-
-const getAllData = <T>(storeName: string): Promise<T[]> => {
-    return new Promise(async (resolve, reject) => {
-        const db = await initDB();
-        const transaction = db.transaction(storeName, 'readonly');
-        const store = transaction.objectStore(storeName);
-        const request = store.getAll();
-        request.onsuccess = () => resolve(request.result as T[]);
-        request.onerror = () => reject(request.error);
+        request.onupgradeneeded = (event) => {
+            const db = (event.target as IDBOpenDBRequest).result;
+            if (!db.objectStoreNames.contains('chatMessages')) {
+                db.createObjectStore('chatMessages', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('ustazChatMessages')) {
+                db.createObjectStore('ustazChatMessages', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('studyPlans')) {
+                db.createObjectStore('studyPlans', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('tajweedSessions')) {
+                db.createObjectStore('tajweedSessions', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('jawiConversions')) {
+                db.createObjectStore('jawiConversions', { keyPath: 'id', autoIncrement: true });
+            }
+            // New store for caching ayah explanations
+            if (!db.objectStoreNames.contains('ayahExplanations')) {
+                db.createObjectStore('ayahExplanations', { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains('iqraPracticeHistory')) {
+                db.createObjectStore('iqraPracticeHistory', { keyPath: 'id', autoIncrement: true });
+            }
+            // Generic cache store
+            if (!db.objectStoreNames.contains('appCache')) {
+                db.createObjectStore('appCache', { keyPath: 'key' });
+            }
+        };
     });
 };
 
-const getData = <T>(storeName: string, key: IDBValidKey): Promise<T | null> => {
-    return new Promise(async (resolve, reject) => {
-        const db = await initDB();
-        const transaction = db.transaction(storeName, 'readonly');
+const performDBAction = async <T>(storeName: string, mode: IDBTransactionMode, action: (store: IDBObjectStore) => IDBRequest): Promise<T> => {
+    const db = await openDB();
+    return new Promise<T>((resolve, reject) => {
+        const transaction = db.transaction(storeName, mode);
         const store = transaction.objectStore(storeName);
-        const request = store.get(key);
-        request.onsuccess = () => resolve((request.result as T) || null);
-        request.onerror = () => reject(request.error);
+        const request = action(store);
+        
+        transaction.oncomplete = () => {};
+        
+        transaction.onerror = () => {
+            console.error('Transaction error:', transaction.error);
+            reject(transaction.error);
+        };
+        
+        request.onsuccess = () => {
+            resolve(request.result);
+        };
+        
+        request.onerror = () => {
+            console.error('Request error:', request.error);
+            reject(request.error);
+        };
     });
-}
-
-const putData = <T>(storeName: string, data: T): Promise<IDBValidKey> => {
-    return new Promise(async (resolve, reject) => {
-        const db = await initDB();
-        const transaction = db.transaction(storeName, 'readwrite');
-        const store = transaction.objectStore(storeName);
-        const request = store.put(data);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-    });
 };
 
+const add = (storeName: string, data: any) => performDBAction(storeName, 'readwrite', store => store.add({ ...data, timestamp: Date.now() }));
+const getAll = <T>(storeName: string): Promise<T[]> => performDBAction<T[]>(storeName, 'readonly', store => store.getAll());
+const put = (storeName: string, data: any) => performDBAction(storeName, 'readwrite', store => store.put({ ...data, timestamp: Date.now() }));
+const get = <T>(storeName: string, key: string): Promise<T> => performDBAction<T>(storeName, 'readonly', store => store.get(key));
 
-// Chat Messages
-export const addChatMessage = (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
-    return addData('chatMessages', { ...message, timestamp: Date.now() });
-};
-export const getChatMessages = () => getAllData<ChatMessage>('chatMessages');
+// --- Chat Messages (AI Companion) ---
+export const addChatMessage = (message: Omit<ChatMessage, 'id'>) => add('chatMessages', message);
+export const getChatMessages = (): Promise<ChatMessage[]> => getAll<ChatMessage>('chatMessages');
 
-// Ustaz Chat Messages
-export const addUstazChatMessage = (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
-    return addData('ustazChatMessages', { ...message, timestamp: Date.now() });
-};
-export const getUstazChatMessages = () => getAllData<ChatMessage>('ustazChatMessages');
+// --- Chat Messages (Tanya Ustaz) ---
+export const addUstazChatMessage = (message: Omit<ChatMessage, 'id'>) => add('ustazChatMessages', message);
+export const getUstazChatMessages = (): Promise<ChatMessage[]> => getAll<ChatMessage>('ustazChatMessages');
 
+// --- Study Plans ---
+export const addStudyPlan = (plan: StudyPlan) => add('studyPlans', plan);
+export const getStudyPlans = (): Promise<StudyPlan[]> => getAll<StudyPlan>('studyPlans');
 
-// Ayah Explanations (as a cache)
-export const addAyahExplanation = (surahAyah: string, explanation: string) => {
-    return putData('ayahExplanations', { surahAyah, explanation, timestamp: Date.now() });
-};
-export const getAyahExplanation = async (surahAyah: string): Promise<string | null> => {
-    const result = await getData<{ explanation: string }>('ayahExplanations', surahAyah);
-    return result?.explanation || null;
-};
+// --- Tajweed Sessions ---
+export const addTajweedSession = (session: Omit<TajweedSession, 'id' | 'timestamp'>) => add('tajweedSessions', session);
+export const getTajweedSessions = (): Promise<TajweedSession[]> => getAll<TajweedSession>('tajweedSessions');
 
-// Study Plans
-export const addStudyPlan = (plan: Omit<StudyPlan, 'id' | 'timestamp'>) => {
-    return addData('studyPlans', { ...plan, timestamp: Date.now() });
-};
-export const getStudyPlans = () => getAllData<StudyPlan>('studyPlans');
+// --- Jawi Conversions ---
+export const addJawiConversion = (conversion: Omit<JawiConversion, 'id' | 'timestamp'>) => add('jawiConversions', conversion);
+export const getJawiConversions = (): Promise<JawiConversion[]> => getAll<JawiConversion>('jawiConversions');
 
-// Jawi Conversions
-export const addJawiConversion = (conversion: Omit<JawiConversion, 'id' | 'timestamp'>) => {
-    return addData('jawiConversions', { ...conversion, timestamp: Date.now() });
-};
-export const getJawiConversions = () => getAllData<JawiConversion>('jawiConversions');
-
-// Tajweed Sessions
-export const addTajweedSession = (session: Omit<TajweedSession, 'id'| 'timestamp'>) => {
-    return addData('tajweedSessions', { ...session, timestamp: Date.now() });
-};
-export const getTajweedSessions = () => getAllData<TajweedSession>('tajweedSessions');
-
-// Iqra Data Cache
-const IQRA_CACHE_KEY = 'iqra-data';
-
-export const cacheIqraData = (data: IqraPage[]): Promise<IDBValidKey> => {
-    return putData('iqraCache', { id: IQRA_CACHE_KEY, data, timestamp: Date.now() });
+// --- Ayah Explanations (Caching) ---
+export const addAyahExplanation = (id: string, text: string) => put('ayahExplanations', { id, text });
+export const getAyahExplanation = async (id: string): Promise<string | null> => {
+    const record = await get<{id: string, text: string}>('ayahExplanations', id);
+    return record ? record.text : null;
 };
 
-export const getCachedIqraData = async (): Promise<IqraPage[] | null> => {
-    const result = await getData<{ data: IqraPage[] }>('iqraCache', IQRA_CACHE_KEY);
-    // Optional: Add cache invalidation logic here (e.g., based on timestamp)
-    return result?.data || null;
+// --- Iqra' Practice Sessions ---
+export const addIqraPracticeSession = (session: Omit<IqraPracticeSession, 'id' | 'timestamp'>) => add('iqraPracticeHistory', session);
+export const getIqraPracticeHistory = (): Promise<IqraPracticeSession[]> => getAll<IqraPracticeSession>('iqraPracticeHistory');
+
+// --- Generic App Cache ---
+export const setCache = (key: string, value: any) => performDBAction('appCache', 'readwrite', store => store.put({ key, value }));
+export const getCache = async (key: string): Promise<any | null> => {
+    const record = await get<{key: string, value: any}>('appCache', key);
+    return record ? record.value : null;
 };

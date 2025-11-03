@@ -1,60 +1,108 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QuranPulse</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              'primary': '#e63968', // Pink
-              'accent': '#f9d423',  // Yellow
-              'background': {
-                'light': '#43a99d', // Teal
-                'dark': '#0D1B2A'   // Very Dark Blue
-              },
-              'foreground': {
-                'light': '#f8fafc', // Off-white
-                'dark': '#E0E1DD'   // Light Grey
-              },
-              'card': {
-                'light': '#3b9489', // Darker Teal
-                'dark': '#1B263B'   // Dark Blue-Gray
-              },
-              'border': {
-                'light': '#328076', // Even Darker Teal
-                'dark': '#415A77'   // Grayish Blue
-              },
-            },
-            fontFamily: {
-              'sans': ['Inter', 'sans-serif'],
-              'arabic': ['"Noto Naskh Arabic"', 'serif'],
-              'transliteration': ['"Scheherazade New"', 'serif']
-            }
-          }
-        }
+
+    <!-- Import Map for ES Modules -->
+    <script type="importmap">
+    {
+      "imports": {
+        "express": "https://aistudiocdn.com/express@^5.1.0",
+        "dotenv": "https://aistudiocdn.com/dotenv@^17.2.3",
+        "cors": "https://aistudiocdn.com/cors@^2.8.5",
+        "express-rate-limit": "https://aistudiocdn.com/express-rate-limit@^8.2.0",
+        "react/": "https://aistudiocdn.com/react@^19.2.0/",
+        "react": "https://aistudiocdn.com/react@^19.2.0",
+        "react-dom/client": "https://aistudiocdn.com/react-dom@^19.2.0/client",
+        "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+        "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0"
       }
+    }
     </script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- App Fonts & Styles -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Scheherazade+New:wght@400;700&display=swap" rel="stylesheet">
-  <script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.25.0"
-  }
-}
-</script>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style type="text/tailwindcss">
+        @layer base {
+            :root {
+                --background: 50 30% 93%; /* #f4f3ed - Warm Ivory */
+                --foreground: 163 29% 17%; /* #1e3932 - Deep Dark Green */
+                --card: 50 30% 98%; /* #fcfcf9 - Brighter Ivory */
+                --border: 163 20% 80%; /* #c4d1ce - Light Greenish Gray */
+                --primary: 163 29% 17%; /* #1e3932 - Deep Dark Green */
+                --primary-foreground: 50 30% 98%; /* #fcfcf9 - Brighter Ivory */
+                --accent: 163 25% 35%; /* #3b6257 - Muted Green */
+                --destructive: 0 84.2% 60.2%;
+            }
+
+            .dark {
+                --background: 163 29% 10%; /* #11211c - Very Dark Green */
+                --foreground: 50 30% 90%; /* #ecebe4 - Soft Ivory */
+                --card: 163 29% 13%; /* #182e28 - Lighter Dark Green */
+                --border: 163 25% 18%; /* #213d37 - Dark Green-Gray Border */
+                --primary: 50 30% 90%; /* #ecebe4 - Soft Ivory */
+                --primary-foreground: 163 29% 10%; /* #11211c - Very Dark Green */
+                --accent: 163 30% 45%; /* #508c7e - Muted Teal */
+                --destructive: 0 62.8% 30.6%;
+            }
+
+            body {
+                background-image: url('./public/images/islamic-pattern.png');
+                background-repeat: repeat;
+                background-size: 300px;
+                background-attachment: fixed;
+                transition: background-color 0.3s ease;
+            }
+
+            html:not(.dark) body {
+                background-color: hsl(var(--background));
+            }
+
+            html.dark body {
+                background-blend-mode: overlay;
+                background-color: hsla(var(--background), 0.95);
+            }
+
+            .font-arabic { font-family: 'Amiri Quran', serif; }
+            .font-sans { font-family: 'Inter', sans-serif; }
+        }
+    </style>
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        background: 'hsl(var(--background))',
+                        foreground: 'hsl(var(--foreground))',
+                        card: 'hsl(var(--card))',
+                        border: 'hsl(var(--border))',
+                        primary: {
+                            DEFAULT: 'hsl(var(--primary))',
+                            foreground: 'hsl(var(--primary-foreground))'
+                        },
+                        accent: {
+                            DEFAULT: 'hsl(var(--accent))',
+                        },
+                        destructive: 'hsl(var(--destructive))',
+                    }
+                }
+            }
+        }
+    </script>
 </head>
-  <body>
+<body class="bg-background text-foreground">
     <div id="root"></div>
-  </body>
+    <script type="module" src="/index.tsx"></script>
+</body>
 </html>

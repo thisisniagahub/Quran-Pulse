@@ -1,23 +1,6 @@
-// P3 FIX: Re-added error handling properties to the context type.
-export interface AudioContextType {
-    track: AudioTrack | null;
-    isPlaying: boolean;
-    currentTime: number;
-    duration: number;
-    error: string | null; // <-- RE-ADDED
-    playTrack: (track: AudioTrack) => void;
-    togglePlayPause: () => void;
-    stop: () => void;
-    seek: (time: number) => void;
-    retry: () => void; // <-- RE-ADDED
-    dismissError: () => void; // <-- RE-ADDED
-}
+import React from 'react';
 
-export interface AudioTrack {
-    src: string; // URL or base64 data for WAV
-    title: string;
-    type: 'mp3' | 'wav_base64';
-}
+// --- General App State ---
 
 export enum Theme {
   LIGHT = 'light',
@@ -53,14 +36,7 @@ export enum ActiveView {
   HALAL_CHECKER = 'halal-checker',
 }
 
-export interface IqraPage {
-  book: number;
-  page: number;
-  lines: string[];
-  title?: string;
-  description?: string;
-  category?: 'cover' | 'intro' | 'lesson' | 'exercise' | 'review';
-}
+// --- Quran Data ---
 
 export interface Translation {
   text: string;
@@ -75,7 +51,11 @@ export interface Ayah {
   page: number;
   ruku: number;
   hizbQuarter: number;
-  sajda: boolean;
+  sajda: boolean | {
+    id: number;
+    recommended: boolean;
+    obligatory: boolean;
+  };
 }
 
 export interface Surah {
@@ -84,6 +64,7 @@ export interface Surah {
   englishName: string;
   englishNameTranslation: string;
   revelationType: string;
+  numberOfAyahs: number;
   ayahs: Ayah[];
   translations: {
     malay: Translation[];
@@ -91,6 +72,8 @@ export interface Surah {
     transliteration: Translation[];
   };
 }
+
+// --- Prayer Times ---
 
 export interface PrayerTimesData {
   Imsak: string;
@@ -100,48 +83,56 @@ export interface PrayerTimesData {
   Asr: string;
   Maghrib: string;
   Isha: string;
-  [key: string]: string;
 }
+
+// --- AI & Chat ---
 
 export interface ChatMessage {
   id?: number;
   sender: 'user' | 'ai';
   text: string;
-  citation?: string;
-  action?: {
-    label: string;
-    view: ActiveView;
-    params?: { [key: string]: any };
-  };
-  imageUrl?: string;
-  groundingSources?: any[];
   timestamp?: number;
 }
 
 export interface StudyPlan {
-    id?: number;
-    plan_title: string;
-    duration_days: number;
-    daily_plan: {
-        day: number;
-        topic: string;
-        tasks: string[];
-        estimated_time: string;
-    }[];
-    goal?: string;
-    duration?: string;
-    level?: string;
-    timestamp?: number;
+  id?: number;
+  goal: string;
+  duration: string;
+  level: string;
+  plan_title: string;
+  duration_days: number;
+  daily_plan: {
+    day: number;
+    topic: string;
+    tasks: string[];
+    estimated_time: string;
+  }[];
+  timestamp?: number;
 }
 
 export interface JawiConversion {
-    id?: number;
-    rumi: string;
-    jawi: string;
-    timestamp?: number;
+  id?: number;
+  rumi: string;
+  jawi: string;
+  timestamp?: number;
 }
 
-// FIX: Add and export TajweedRule interface
+// --- Tajweed & Iqra ---
+
+export interface PracticeMaterial {
+  title: string;
+  content: string;
+  type: 'quran' | 'iqra';
+}
+
+export interface TajweedSession {
+  id?: number;
+  material: PracticeMaterial;
+  transcripts: ChatMessage[];
+  accuracy: number;
+  timestamp?: number;
+}
+
 export interface TajweedRule {
   id: string;
   name: string;
@@ -155,16 +146,75 @@ export interface TajweedRule {
   }[];
 }
 
-export interface PracticeMaterial {
+export interface IqraPage {
+    book: number;
+    page: number;
     title: string;
-    content: string;
-    type: 'iqra' | 'quran';
+    description?: string;
+    lines: string[];
 }
 
-export interface TajweedSession {
-    id?: number;
-    material: PracticeMaterial;
-    transcripts: { sender: 'user' | 'ai', text: string }[];
-    accuracy?: number;
-    timestamp?: number;
+export interface IqraPracticeSession {
+  id?: number;
+  book: number;
+  page: number;
+  score: number;
+  stars: number;
+  timestamp?: number;
+}
+
+// --- Audio Player ---
+
+export interface AudioTrack {
+  src: string;
+  title: string;
+  type: 'mp3' | 'wav_base64';
+}
+
+export interface AudioContextType {
+  track: AudioTrack | null;
+  isPlaying: boolean;
+  currentTime: number;
+  duration: number;
+  error: string | null;
+  playTrack: (track: AudioTrack) => void;
+  togglePlayPause: () => void;
+  stop: () => void;
+  seek: (time: number) => void;
+  retry: () => void;
+  dismissError: () => void;
+}
+
+// --- Static Content Types ---
+
+export interface ContentStory {
+  id: string;
+  title: string;
+  summary: string;
+  content: string; 
+  videoId?: string;
+  image: string;
+  quranicReference?: {
+    text: string;
+    surah: string;
+  };
+}
+
+export interface Guide {
+  id: string;
+  title: string;
+  summary: string;
+  steps: {
+    title: string;
+    description: string;
+  }[];
+}
+
+export interface Article {
+  id: string;
+  title: string;
+  author: string;
+  date: string;
+  summary: string;
+  content: string;
 }

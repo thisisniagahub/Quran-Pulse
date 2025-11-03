@@ -1,168 +1,190 @@
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
-import { AudioContextType, AudioTrack } from '../types';
-import { createWavBlobUrl } from '../utils/audio';
+import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
+import type { AudioContextType, AudioTrack } from '../types';
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
-export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const audioRef = useRef<HTMLAudioElement>(null);
-    const currentObjectUrl = useRef<string | null>(null);
+export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [track, setTrack] = useState<AudioTrack | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
-    const [track, setTrack] = useState<AudioTrack | null>(null);
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [currentTime, setCurrentTime] = useState(0);
-    const [duration, setDuration] = useState(0);
-    const [error, setError] = useState<string | null>(null);
-    const [lastTrack, setLastTrack] = useState<AudioTrack | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-    const cleanupObjectUrl = useCallback(() => {
-        if (currentObjectUrl.current) {
-            URL.revokeObjectURL(currentObjectUrl.current);
-            currentObjectUrl.current = null;
-        }
-    }, []);
+  // Stop and clean up the audio element
+  const stop = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      // Setting src to empty string is a common way to force unload
+      audioRef.current.src = ''; 
+      audioRef.current.load();
+      audioRef.current = null;
+    }
+    setTrack(null);
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+  }, []);
 
-    useEffect(() => {
-        // General cleanup on unmount
-        return () => cleanupObjectUrl();
-    }, [cleanupObjectUrl]);
+  // Effect to manage event listeners for the audio element.
+  // This is the source of truth for the player's state.
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
 
-    useEffect(() => {
-        const audio = audioRef.current;
-        if (!audio) return;
-
-        const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
-        const handleDurationChange = () => setDuration(audio.duration);
-        const handlePlay = () => setIsPlaying(true);
-        const handlePause = () => setIsPlaying(false);
-        const handleEnded = () => setIsPlaying(false);
-        const handleError = () => {
-            console.error('Audio Error:', audio.error);
-            setError('Ralat audio: Gagal memuatkan trek.');
-            setIsPlaying(false);
-            setLastTrack(track);
-            setTrack(null);
-        };
-
-        audio.addEventListener('timeupdate', handleTimeUpdate);
-        audio.addEventListener('durationchange', handleDurationChange);
-        audio.addEventListener('loadedmetadata', handleDurationChange);
-        audio.addEventListener('play', handlePlay);
-        audio.addEventListener('pause', handlePause);
-        audio.addEventListener('ended', handleEnded);
-        audio.addEventListener('error', handleError);
-
-        return () => {
-            audio.removeEventListener('timeupdate', handleTimeUpdate);
-            audio.removeEventListener('durationchange', handleDurationChange);
-            audio.removeEventListener('loadedmetadata', handleDurationChange);
-            audio.removeEventListener('play', handlePlay);
-            audio.removeEventListener('pause', handlePause);
-            audio.removeEventListener('ended', handleEnded);
-            audio.removeEventListener('error', handleError);
-        };
-    }, [track]);
-
-    const dismissError = useCallback(() => {
-        setError(null);
-        setLastTrack(null);
-    }, []);
-
-    const playTrack = useCallback((newTrack: AudioTrack) => {
-        const audio = audioRef.current;
-        if (!audio) return;
-
-        cleanupObjectUrl();
-        dismissError();
-        setTrack(newTrack);
-
-        let audioSrc = newTrack.src;
-        if (newTrack.type === 'wav_base64') {
-            try {
-                audioSrc = createWavBlobUrl(newTrack.src);
-                currentObjectUrl.current = audioSrc;
-            } catch (e) {
-                console.error("Error creating WAV blob URL:", e);
-                setError("Gagal memproses data audio.");
-                setLastTrack(newTrack);
-                setTrack(null);
-                return;
-            }
-        }
-
-        audio.src = audioSrc;
-        audio.load();
-        audio.play().catch(e => {
-            console.error('Playback failed:', e);
-            setError('Gagal memainkan audio.');
-            setLastTrack(newTrack);
-            setTrack(null);
-        });
-    }, [cleanupObjectUrl, dismissError]);
-
-    const togglePlayPause = useCallback(() => {
-        const audio = audioRef.current;
-        if (!audio || !track) return;
-
-        if (isPlaying) {
-            audio.pause();
-        } else {
-            audio.play().catch(e => {
-                console.error('Playback failed on toggle:', e);
-                setError('Gagal memainkan audio.');
-                setLastTrack(track);
-                setTrack(null);
-            });
-        }
-    }, [isPlaying, track]);
-
-    const stop = useCallback(() => {
-        const audio = audioRef.current;
-        if (!audio) return;
-
-        audio.pause();
-        audio.removeAttribute('src'); // Use removeAttribute instead of setting to ''
-        audio.load();
-        
-        cleanupObjectUrl();
-        setTrack(null);
-        setCurrentTime(0);
-        setDuration(0);
-        setIsPlaying(false);
-        dismissError();
-    }, [cleanupObjectUrl, dismissError]);
-
-    const seek = useCallback((time: number) => {
-        const audio = audioRef.current;
-        if (audio && isFinite(time)) {
-            audio.currentTime = time;
-            setCurrentTime(time);
-        }
-    }, []);
-
-    const retry = useCallback(() => {
-        if (lastTrack) {
-            playTrack(lastTrack);
-        }
-    }, [lastTrack, playTrack]);
-
-    const value: AudioContextType = {
-        track, isPlaying, currentTime, duration, error,
-        playTrack, togglePlayPause, stop, seek, retry, dismissError,
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    const onTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const onLoadedMetadata = () => setDuration(audio.duration);
+    const onEnded = () => {
+      setIsPlaying(false);
+      // Ensure the slider visually completes
+      if (audio.duration) {
+        setCurrentTime(audio.duration);
+      }
+    };
+    const onError = (e: Event) => {
+      console.error('Audio Player Error:', e);
+      setError('Ralat memuatkan audio. Sila cuba lagi.');
+      setIsPlaying(false); // Ensure isPlaying is false on error
     };
 
-    return (
-        <AudioContext.Provider value={value}>
-            <audio ref={audioRef} />
-            {children}
-        </AudioContext.Provider>
-    );
+    audio.addEventListener('play', onPlay);
+    audio.addEventListener('pause', onPause);
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    audio.addEventListener('loadedmetadata', onLoadedMetadata);
+    audio.addEventListener('ended', onEnded);
+    audio.addEventListener('error', onError);
+
+    return () => {
+      audio.removeEventListener('play', onPlay);
+      audio.removeEventListener('pause', onPause);
+      audio.removeEventListener('timeupdate', onTimeUpdate);
+      audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+      audio.removeEventListener('ended', onEnded);
+      audio.removeEventListener('error', onError);
+    };
+  }, [track]); // Re-attach listeners when the track (and thus audio element) changes
+
+
+  const playTrack = useCallback(async (newTrack: AudioTrack) => {
+    // If the same track is requested, just play/pause
+    if (audioRef.current && track?.src === newTrack.src && !error) {
+      if (audioRef.current.paused) {
+        try {
+          await audioRef.current.play();
+        } catch (err: any) {
+          if (err.name !== 'AbortError') {
+            console.error("Error resuming track:", err);
+            setError("Gagal menyambung main audio.");
+          }
+        }
+      }
+      return;
+    }
+
+    // Clean up previous track if any
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    
+    setError(null);
+    setTrack(newTrack);
+    setCurrentTime(0); // Reset time for new track
+
+    const audio = new Audio();
+    if (newTrack.type === 'wav_base64') {
+        audio.src = `data:audio/wav;base64,${newTrack.src}`;
+    } else {
+        audio.src = newTrack.src;
+    }
+    audioRef.current = audio;
+
+    try {
+        await audio.play();
+    } catch (err: any) {
+        if (err.name === 'AbortError') {
+            console.log('Playback aborted by new request.');
+        } else {
+            console.error("Error playing track:", err);
+            setError("Gagal memainkan audio.");
+        }
+    }
+  }, [track, error]);
+  
+  const togglePlayPause = useCallback(async () => {
+    const audio = audioRef.current;
+    if (!audio || error) return;
+    
+    try {
+        if (audio.paused) {
+            await audio.play();
+        } else {
+            audio.pause();
+        }
+    } catch (err: any) {
+        if (err.name === 'AbortError') {
+            console.log('Play/Pause action was interrupted by another action. This is normal.');
+        } else {
+            console.error("Toggle play/pause failed", err);
+            setError("Gagal menukar status main/jeda audio.");
+        }
+    }
+  }, [error]);
+  
+  const seek = useCallback((time: number) => {
+    if (audioRef.current && !error) {
+      audioRef.current.currentTime = time;
+      setCurrentTime(time);
+    }
+  }, [error]);
+  
+  const retry = useCallback(() => {
+    if (track) {
+        const trackToRetry = { ...track };
+        // Don't call stop() as it clears the track state
+        setError(null);
+        // Defer playTrack to allow state to update
+        setTimeout(() => playTrack(trackToRetry), 50);
+    }
+  }, [track, playTrack]);
+
+  const dismissError = useCallback(() => {
+      setError(null);
+      stop(); // Stop completely and clear track
+  }, [stop]);
+
+  useEffect(() => {
+    return () => {
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current = null;
+        }
+    };
+  }, []);
+
+  const value: AudioContextType = {
+    track,
+    isPlaying,
+    currentTime,
+    duration,
+    error,
+    playTrack,
+    togglePlayPause,
+    stop,
+    seek,
+    retry,
+    dismissError,
+  };
+
+  return <AudioContext.Provider value={value}>{children}</AudioContext.Provider>;
 };
 
 export const useAudioPlayer = (): AudioContextType => {
-    const context = useContext(AudioContext);
-    if (context === undefined) {
-        throw new Error('useAudioPlayer must be used within an AudioProvider');
-    }
-    return context;
+  const context = useContext(AudioContext);
+  if (context === undefined) {
+    throw new Error('useAudioPlayer must be used within an AudioProvider');
+  }
+  return context;
 };

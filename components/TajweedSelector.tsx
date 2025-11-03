@@ -1,68 +1,140 @@
-// FIX: The original content of this file was invalid. This new content provides the full, functional implementation for the TajweedSelector component.
-import React, { useState } from 'react';
-import type { PracticeMaterial, TajweedRule } from '../types';
+import React, { useState, useEffect } from 'react';
+import type { PracticeMaterial, TajweedRule, TajweedSession } from '../types';
 import { IqraBookView } from './IqraBookView';
 import { tajweedRulesData } from '../data/tajweedRulesData';
 import { TajweedRuleInfo } from './TajweedRuleInfo';
-import { BookOpenIcon, SparklesIcon } from './icons/Icons';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './ui/Card';
+import { Button } from './ui/Button';
+// FIX: Replaced non-existent `ListBulletIcon` with `ListIcon`.
+import { BookOpenIcon, SparklesIcon, ListIcon, HistoryIcon } from './icons/Icons';
+import { getTajweedSessions } from '../services/dbService';
+import { AgentSelector } from './ui/AgentSelector';
+import { AGENT_DEFINITIONS } from '../lib/agents';
+
+type SelectionMode = 'iqra' | 'rules' | 'history';
+type AgentId = 'gemini' | 'glm';
 
 interface TajweedSelectorProps {
     onSelectMaterial: (material: PracticeMaterial) => void;
+    selectedAgentId: AgentId;
+    onSelectAgent: (agentId: AgentId) => void;
 }
 
-type SelectorView = 'main' | 'iqra';
-
-export const TajweedSelector: React.FC<TajweedSelectorProps> = ({ onSelectMaterial }) => {
-    const [view, setView] = useState<SelectorView>('main');
+export const TajweedSelector: React.FC<TajweedSelectorProps> = ({ onSelectMaterial, selectedAgentId, onSelectAgent }) => {
+    const [mode, setMode] = useState<SelectionMode>('iqra');
     const [selectedRule, setSelectedRule] = useState<TajweedRule | null>(null);
+    const [history, setHistory] = useState<TajweedSession[]>([]);
 
-    if (view === 'iqra') {
-        return <IqraBookView onSelectMaterial={onSelectMaterial} onBack={() => setView('main')} />;
-    }
+    const agentSet = AGENT_DEFINITIONS.tajweedFeedback;
+
+    useEffect(() => {
+        if (mode === 'history') {
+            const fetchHistory = async () => {
+                const sessions = await getTajweedSessions();
+                const sortedSessions = sessions.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                setHistory(sortedSessions);
+            };
+            fetchHistory();
+        }
+    }, [mode]);
+
+    const handleSelectRuleExample = (ruleName: string, example: { arabic: string }) => {
+        onSelectMaterial({
+            title: `Latihan ${ruleName}: ${example.arabic}`,
+            content: example.arabic,
+            type: 'quran'
+        });
+    };
     
-    // Main view
+    const timeAgo = (timestamp: number) => {
+        const seconds = Math.floor((new Date().getTime() - timestamp) / 1000);
+        let interval = seconds / 31536000;
+        if (interval > 1) return Math.floor(interval) + " tahun lalu";
+        interval = seconds / 2592000;
+        if (interval > 1) return Math.floor(interval) + " bulan lalu";
+        interval = seconds / 86400;
+        if (interval > 1) return Math.floor(interval) + " hari lalu";
+        interval = seconds / 3600;
+        if (interval > 1) return Math.floor(interval) + " jam lalu";
+        interval = seconds / 60;
+        if (interval > 1) return Math.floor(interval) + " minit lalu";
+        return "Baru sahaja";
+    };
+
+    const renderContent = () => {
+        switch (mode) {
+            case 'iqra':
+                return <IqraBookView onSelectMaterial={onSelectMaterial} onBack={() => {}} />;
+            case 'rules':
+                return (
+                    <div className="space-y-4">
+                        {tajweedRulesData.map(rule => (
+                            <div key={rule.id} className="bg-card-light dark:bg-card-dark p-4 rounded-lg shadow-sm">
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-lg font-bold">{rule.name}</h3>
+                                    <Button variant="ghost" size="sm" onClick={() => setSelectedRule(rule)}>Info</Button>
+                                </div>
+                                <p className="text-sm text-foreground-light/80 mt-1">{rule.description}</p>
+                                <div className="mt-4 space-y-2">
+                                    {rule.examples.map((ex, index) => (
+                                        <div key={index} className="flex items-center justify-between p-3 bg-background-light dark:bg-background-dark rounded-md">
+                                            <p className="font-arabic text-xl">{ex.arabic}</p>
+                                            <Button size="sm" onClick={() => handleSelectRuleExample(rule.name, ex)}>Praktis</Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                );
+             case 'history':
+                if (history.length === 0) {
+                    return <div className="text-center p-8 text-foreground-light/70">Tiada sejarah latihan ditemui.</div>;
+                }
+                return (
+                     <div className="space-y-4">
+                        {history.map(session => (
+                            <div key={session.id} className="bg-card-light dark:bg-card-dark p-4 rounded-lg shadow-sm flex justify-between items-center">
+                                <div>
+                                    <p className="font-bold">{session.material.title}</p>
+                                    <p className="text-sm text-foreground-light/70">{timeAgo(session.timestamp!)}</p>
+                                    {session.accuracy !== undefined && (
+                                        <p className={`text-sm font-semibold ${session.accuracy >= 85 ? 'text-green-500' : 'text-yellow-500'}`}>
+                                            Skor: {session.accuracy}%
+                                        </p>
+                                    )}
+                                </div>
+                                <Button onClick={() => onSelectMaterial(session.material)}>Ulang Latihan</Button>
+                            </div>
+                        ))}
+                    </div>
+                );
+        }
+    };
+
     return (
-        <div className="max-w-4xl mx-auto">
+        <div>
             <div className="text-center mb-8">
-                <h2 className="text-3xl font-bold text-primary mb-2">Tutor Tajwid AI</h2>
-                <p className="text-foreground-light/80 dark:text-foreground-dark/80">Pilih bahan latihan atau pelajari hukum tajwid asas.</p>
+                <h2 className="text-3xl font-bold text-primary mb-2">Tutor Tajwid AI (PRO)</h2>
+                <p className="text-foreground-light/80 dark:text-foreground-dark/80">Pilih bahan latihan dan jurulatih AI untuk memulakan sesi anda.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card 
-                    className="cursor-pointer hover:border-primary transition-colors"
-                    onClick={() => setView('iqra')}
-                >
-                    <CardHeader>
-                        <BookOpenIcon className="w-10 h-10 text-primary mb-2" />
-                        <CardTitle>Praktis Bacaan Iqra'</CardTitle>
-                        <CardDescription>Pilih halaman dari buku Iqra' 1-6 untuk berlatih dengan maklum balas AI.</CardDescription>
-                    </CardHeader>
-                </Card>
-
-                <Card className="md:col-span-1">
-                     <CardHeader>
-                        <SparklesIcon className="w-10 h-10 text-accent mb-2" />
-                        <CardTitle>Rujukan Hukum Tajwid</CardTitle>
-                        <CardDescription>Fahami hukum-hukum tajwid asas dengan penerangan dan contoh.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-2">
-                        {tajweedRulesData.map(rule => (
-                            <button 
-                                key={rule.id}
-                                onClick={() => setSelectedRule(rule)}
-                                className="w-full text-left p-3 rounded-md hover:bg-foreground-light/5 dark:hover:bg-foreground-dark/5 transition-colors"
-                            >
-                                {rule.name}
-                            </button>
-                        ))}
-                        </div>
-                    </CardContent>
-                </Card>
+            <div className="mb-4">
+                 <AgentSelector 
+                    agents={Object.values(agentSet)}
+                    selectedAgentId={selectedAgentId}
+                    onSelectAgent={onSelectAgent}
+                    title="Pilih Jurulatih AI Anda"
+                />
             </div>
             
+            <div className="flex justify-center gap-2 mb-6 p-1 bg-card-light dark:bg-card-dark rounded-lg">
+                <Button onClick={() => setMode('iqra')} variant={mode === 'iqra' ? 'secondary' : 'ghost'} className="gap-2"><BookOpenIcon className="w-4 h-4" /> Iqra'</Button>
+                <Button onClick={() => setMode('rules')} variant={mode === 'rules' ? 'secondary' : 'ghost'} className="gap-2"><SparklesIcon className="w-4 h-4" /> Hukum Tajwid</Button>
+                <Button onClick={() => setMode('history')} variant={mode === 'history' ? 'secondary' : 'ghost'} className="gap-2"><HistoryIcon className="w-4 h-4" /> Sejarah</Button>
+            </div>
+
+            {renderContent()}
+
             {selectedRule && <TajweedRuleInfo rule={selectedRule} onClose={() => setSelectedRule(null)} />}
         </div>
     );

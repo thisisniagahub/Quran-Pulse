@@ -1,0 +1,20 @@
+import type { Article } from '../types';
+
+export const artikelIslamiData: Article[] = [
+  {
+    id: 'kelebihan-selawat',
+    title: 'Kelebihan Berselawat ke Atas Nabi Muhammad S.A.W.',
+    author: 'Ustaz Digital AI',
+    date: '2025-10-01',
+    summary: 'Mengenali fadhilat dan ganjaran bagi mereka yang sentiasa melazimi selawat.',
+    content: `Selawat adalah doa dan pujian kita kepada junjungan besar Nabi Muhammad S.A.W. Ia bukan sahaja satu bentuk penghormatan, tetapi juga satu ibadah yang mempunyai banyak kelebihan.\n\nAllah S.W.T. berfirman dalam Surah Al-Ahzab, ayat 56: "Sesungguhnya Allah dan malaikat-Nya berselawat (memberi segala penghormatan dan kebaikan) kepada Nabi; wahai orang-orang yang beriman, berselawatlah kamu kepadanya serta ucapkanlah salam sejahtera dengan penghormatan yang sepenuhnya."\n\nAntara kelebihan berselawat ialah:\n1. Mendapat syafaat Nabi di akhirat kelak.\n2. Allah akan berselawat ke atas kita 10 kali bagi setiap selawat yang kita ucapkan.\n3. Dihapuskan dosa dan diangkat darjat.\n4. Menjadi sebab doa kita dimakbulkan oleh Allah.\n\nJadikanlah selawat sebagai amalan harian kita, sama ada ketika bersendirian, dalam majlis ilmu, atau ketika mengingati Nabi S.A.W. Semoga kita tergolong dalam kalangan umatnya yang mendapat syafaat.`
+  },
+  {
+    id: 'sabar-dalam-ujian',
+    title: 'Indahnya Sabar Ketika Menghadapi Ujian',
+    author: 'Dr. Hamba Allah',
+    date: '2025-09-25',
+    summary: 'Bagaimana untuk kekal positif dan redha apabila ditimpa musibah.',
+    content: `Kehidupan di dunia ini tidak pernah sunyi daripada ujian. Ada kalanya kita diuji dengan kesenangan, dan ada kalanya dengan kesusahan. Sabar adalah kunci untuk menghadapi segala bentuk ujian dengan hati yang tenang dan iman yang teguh.\n\nSabar bukanlah bermakna pasrah tanpa usaha, tetapi redha dengan ketentuan Allah sambil terus berusaha mencari jalan penyelesaian. Allah menjanjikan ganjaran yang besar bagi orang-orang yang sabar, seperti yang disebut dalam Surah Az-Zumar, ayat 10: "Sesungguhnya orang-orang yang bersabarlah sahaja yang akan disempurnakan pahala mereka dengan tidak terkira."\n\nUntuk memupuk sifat sabar, kita perlu sentiasa mengingati bahawa setiap ujian datangnya daripada Allah dan ia adalah untuk meningkatkan darjat kita di sisi-Nya. Selain itu, perbanyakkan doa dan zikir untuk menenangkan hati. Ingatlah, sesudah kesusahan pasti ada kesenangan.`
+  },
+];

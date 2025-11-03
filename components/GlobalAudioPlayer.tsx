@@ -4,7 +4,6 @@ import { PlayIcon, PauseIcon, StopIcon, XIcon, RefreshIcon } from './icons/Icons
 import { Button } from './ui/Button';
 
 export const GlobalAudioPlayer: React.FC = () => {
-    // P3 FIX: Destructure error state and recovery functions from context.
     const { track, isPlaying, currentTime, duration, error, togglePlayPause, seek, stop, retry, dismissError } = useAudioPlayer();
 
     if (!track && !error) {
@@ -22,7 +21,6 @@ export const GlobalAudioPlayer: React.FC = () => {
         seek(Number(e.target.value));
     };
 
-    // P3 FIX: Render a dedicated error UI when an error occurs.
     if (error) {
         return (
             <div className="flex items-center gap-2 w-full bg-destructive/10 p-2 rounded-lg">
@@ -37,7 +35,7 @@ export const GlobalAudioPlayer: React.FC = () => {
         );
     }
     
-    if (!track) return null; // Should not happen if error is null, but for type safety
+    if (!track) return null;
 
     return (
         <div className="flex items-center gap-2 w-full">
@@ -47,7 +45,7 @@ export const GlobalAudioPlayer: React.FC = () => {
 
             <div className="flex-1 flex flex-col justify-center min-w-0">
                 <p className="text-sm font-semibold truncate text-foreground-light dark:text-foreground-dark">{track.title}</p>
-                 <div className="flex items-center gap-2 text-xs text-foreground-light/70 dark:text-foreground-dark/70">
+                 <div className="hidden md:flex items-center gap-2 text-xs text-foreground-light/70 dark:text-foreground-dark/70">
                     <span>{formatTime(currentTime)}</span>
                     <input
                         type="range"

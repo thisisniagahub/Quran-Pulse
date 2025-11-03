@@ -1,105 +1,105 @@
-import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { GlobalAudioPlayer } from './components/GlobalAudioPlayer';
-import { AudioProvider } from './context/AudioContext';
-import { SunIcon, MoonIcon, MenuIcon } from './components/icons/Icons';
+import { BottomNavBar } from './components/BottomNavBar';
+import { SunIcon, MoonIcon } from './components/icons/Icons';
 import { ActiveView, Theme } from './types';
-import { Button } from './components/ui/Button';
+import { cn } from './lib/utils';
+import { sidebarSections } from './components/Sidebar'; // Import for title lookup
+import { OnboardingTutorial } from './components/OnboardingTutorial';
 
-// P1 OPTIMIZATION: CODE SPLITTING
-// Use React.lazy to dynamically import components. This splits the code into smaller chunks,
-// so the user only downloads the code for the view they are currently on.
-// This drastically reduces the initial bundle size and improves app load time.
+// --- Lazy-loaded Components ---
 const QuranReader = lazy(() => import('./components/QuranReader').then(module => ({ default: module.QuranReader })));
 const PrayerTimes = lazy(() => import('./components/PrayerTimes').then(module => ({ default: module.PrayerTimes })));
 const QiblaCompass = lazy(() => import('./components/QiblaCompass').then(module => ({ default: module.QiblaCompass })));
 const AICompanion = lazy(() => import('./components/AICompanion').then(module => ({ default: module.AICompanion })));
+const TanyaUstaz = lazy(() => import('./components/TanyaUstaz').then(module => ({ default: module.TanyaUstaz })));
 const TajweedTutor = lazy(() => import('./components/TajweedTutor').then(module => ({ default: module.TajweedTutor })));
 const StudyPlanner = lazy(() => import('./components/StudyPlanner').then(module => ({ default: module.StudyPlanner })));
 const IbadahTracker = lazy(() => import('./components/IbadahTracker').then(module => ({ default: module.IbadahTracker })));
 const DoaList = lazy(() => import('./components/DoaList').then(module => ({ default: module.DoaList })));
 const JawiWriter = lazy(() => import('./components/JawiWriter').then(module => ({ default: module.JawiWriter })));
 const LiveConversation = lazy(() => import('./components/LiveConversation').then(module => ({ default: module.LiveConversation })));
-const TanyaUstaz = lazy(() => import('./components/TanyaUstaz').then(module => ({ default: module.TanyaUstaz })));
-const AsmaulHusna = lazy(() => import('./components/AsmaulHusna').then(module => ({ default: module.AsmaulHusna })));
+const AsmaulHusna = lazy(() => import('./components/AsmaulHusna'));
 const InteractiveLesson = lazy(() => import('./components/InteractiveLesson'));
 const Leaderboard = lazy(() => import('./components/Leaderboard'));
 const Achievements = lazy(() => import('./components/Achievements'));
 const GemShop = lazy(() => import('./components/GemShop'));
 const DailyGoals = lazy(() => import('./components/DailyGoals'));
 const LearningPath = lazy(() => import('./components/LearningPath'));
+const TafsirView = lazy(() => import('./components/TafsirView').then(module => ({ default: module.TafsirView })));
+const KisahNabiView = lazy(() => import('./components/KisahNabiView').then(module => ({ default: module.KisahNabiView })));
+const PanduanIbadahView = lazy(() => import('./components/PanduanIbadahView').then(module => ({ default: module.PanduanIbadahView })));
+const TasbihDigital = lazy(() => import('./components/TasbihDigital').then(module => ({ default: module.TasbihDigital })));
+const SirahNabawiyahView = lazy(() => import('./components/SirahNabawiyahView').then(module => ({ default: module.SirahNabawiyahView })));
+const HijriCalendarView = lazy(() => import('./components/HijriCalendarView').then(module => ({ default: module.HijriCalendarView })));
+const ArtikelIslamiView = lazy(() => import('./components/ArtikelIslamiView').then(module => ({ default: module.ArtikelIslamiView })));
+const HalalCheckerView = lazy(() => import('./components/HalalCheckerView').then(module => ({ default: module.HalalCheckerView })));
 const PlaceholderView = lazy(() => import('./components/PlaceholderView').then(module => ({ default: module.PlaceholderView })));
 
-
-// A simple, reusable loading component to show while lazy-loaded components are being fetched.
-const LoadingFallback: React.FC = () => (
-    <div className="flex items-center justify-center h-full">
-        <div className="flex flex-col items-center gap-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-            <p className="text-foreground-light/80 dark:text-foreground-dark/80">Memuatkan...</p>
-        </div>
+const LoadingSpinner = () => (
+    <div className="flex justify-center items-center h-full">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
     </div>
 );
 
-const App: React.FC = () => {
-  const [theme, setTheme] = useState<Theme>(Theme.DARK);
+function App() {
   const [activeView, setActiveView] = useState<ActiveView>(ActiveView.QURAN_READER);
-  const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const [quranSurah, setQuranSurah] = useState(1);
-  const [quranAyah, setQuranAyah] = useState<number | null>(null);
-  const [quranAutoplay, setQuranAutoplay] = useState(false);
-
+  const [viewParams, setViewParams] = useState<any | null>(null);
+  const [theme, setTheme] = useState<Theme>(Theme.LIGHT);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
-    const root = window.document.documentElement;
-    if (theme === Theme.DARK) {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
+    // Check for onboarding completion
+    const hasCompletedTutorial = localStorage.getItem('hasCompletedAITutorial');
+    if (!hasCompletedTutorial) {
+      setShowOnboarding(true);
     }
+
+    const savedTheme = localStorage.getItem('theme') as Theme;
+    if (savedTheme && (savedTheme === Theme.LIGHT || savedTheme === Theme.DARK)) {
+      setTheme(savedTheme);
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      setTheme(Theme.DARK);
+    }
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.classList.remove(Theme.LIGHT, Theme.DARK);
+    document.documentElement.classList.add(theme);
+    localStorage.setItem('theme', theme);
   }, [theme]);
+  
+  const handleCloseOnboarding = () => {
+    localStorage.setItem('hasCompletedAITutorial', 'true');
+    setShowOnboarding(false);
+  };
 
   const toggleTheme = () => {
     setTheme(theme === Theme.LIGHT ? Theme.DARK : Theme.LIGHT);
   };
   
-  const handleNavigation = (view: ActiveView, params?: { surahNumber?: number; ayahNumber?: number; autoplay?: boolean }) => {
-    // Reset autoplay trigger on any navigation. It will be set again if needed.
-    if (quranAutoplay) {
-        setQuranAutoplay(false);
-    }
-
-    if (view === ActiveView.QURAN_READER && params?.surahNumber) {
-        setQuranSurah(params.surahNumber);
-        setQuranAyah(params.ayahNumber ?? null);
-        if (params.autoplay) {
-            setQuranAutoplay(true);
-        }
-    }
+  const handleSetActiveView = (view: ActiveView, params?: any) => {
     setActiveView(view);
-    // Close sidebar on navigation for mobile
-    if (window.innerWidth < 768) {
-      setSidebarOpen(false);
+    setViewParams(params || null);
+  };
+  
+  const handleAutoplayHandled = () => {
+    if(viewParams?.startAutoplay) {
+      setViewParams((prev: any) => ({ ...prev, startAutoplay: false }));
     }
   };
-
 
   const renderActiveView = () => {
     switch (activeView) {
       case ActiveView.QURAN_READER:
-        return <QuranReader 
-          key={`${quranSurah}-${quranAyah}`} 
-          initialSurah={quranSurah} 
-          highlightAyah={quranAyah} 
-          startAutoplay={quranAutoplay}
-          onAutoplayHandled={() => setQuranAutoplay(false)}
-        />;
+        return <QuranReader key={`${viewParams?.surah}-${viewParams?.ayah}`} initialSurah={viewParams?.surah} highlightAyah={viewParams?.ayah} startAutoplay={viewParams?.startAutoplay} onAutoplayHandled={handleAutoplayHandled} />;
       case ActiveView.PRAYER_TIMES:
         return <PrayerTimes />;
       case ActiveView.QIBLA:
         return <QiblaCompass />;
       case ActiveView.AI_COMPANION:
-        return <AICompanion onNavigate={handleNavigation} />;
+        return <AICompanion setActiveView={handleSetActiveView} />;
       case ActiveView.TANYA_USTAZ:
         return <TanyaUstaz />;
       case ActiveView.TAJWEED_COACH:
@@ -109,11 +109,11 @@ const App: React.FC = () => {
       case ActiveView.IBADAH_TRACKER:
         return <IbadahTracker />;
       case ActiveView.DOA_ZIKR:
-          return <DoaList />;
+        return <DoaList />;
       case ActiveView.JAWI_WRITER:
-          return <JawiWriter />;
+        return <JawiWriter />;
       case ActiveView.LIVE_CONVERSATION:
-          return <LiveConversation />;
+        return <LiveConversation />;
       case ActiveView.ASMAUL_HUSNA:
         return <AsmaulHusna />;
       case ActiveView.INTERACTIVE_LESSON:
@@ -129,93 +129,70 @@ const App: React.FC = () => {
       case ActiveView.LEARNING_PATH:
         return <LearningPath />;
       case ActiveView.TAFSIR:
-        return <PlaceholderView title="Tafsir & Asbabun Nuzul" description="Terokai makna mendalam di sebalik setiap ayat Al-Quran dan fahami konteks penurunannya. Ciri ini sedang dalam pembangunan." />;
+        return <TafsirView />;
       case ActiveView.KISAH_NABI:
-        return <PlaceholderView title="Kisah 25 Nabi" description="Selami kisah-kisah inspirasi para nabi dan rasul sebagai teladan dalam kehidupan. Ciri ini sedang dalam pembangunan." />;
+        return <KisahNabiView />;
       case ActiveView.PANDUAN_IBADAH:
-        return <PlaceholderView title="Panduan Ibadah" description="Panduan langkah demi langkah untuk Wudhu dan Solat, lengkap dengan bacaan dan gambar rajah. Ciri ini sedang dalam pembangunan." />;
+        return <PanduanIbadahView />;
       case ActiveView.TASBIH_DIGITAL:
-        return <PlaceholderView title="Tasbih Digital" description="Alat mudah untuk membantu anda dalam berzikir harian di mana sahaja. Ciri ini sedang dalam pembangunan." />;
+        return <TasbihDigital />;
       case ActiveView.SIRAH_NABAWIYAH:
-        return <PlaceholderView title="Sirah Nabawiyah" description="Jelajahi perjalanan hidup Nabi Muhammad SAW, dari kelahiran hingga kewafatan baginda. Ciri ini sedang dalam pembangunan." />;
+        return <SirahNabawiyahView />;
       case ActiveView.HIJRI_CALENDAR:
-        return <PlaceholderView title="Kalender Hijriyah" description="Kalender Islam yang lengkap dengan tarikh-tarikh penting dan hari kebesaran. Ciri ini sedang dalam pembangunan." />;
+        return <HijriCalendarView />;
       case ActiveView.ARTICLES:
-        return <PlaceholderView title="Artikel Islami" description="Koleksi artikel dan renungan kontemporari mengenai pelbagai aspek kehidupan sebagai seorang Muslim. Ciri ini sedang dalam pembangunan." />;
+        return <ArtikelIslamiView />;
       case ActiveView.HALAL_CHECKER:
-        return <PlaceholderView title="Penyemak Kod Halal" description="Semak status halal produk makanan dengan mengimbas atau memasukkan E-kod. Ciri ini sedang dalam pembangunan." />;
+        return <HalalCheckerView />;
       default:
-        return <QuranReader initialSurah={1} />;
+        return <PlaceholderView title={activeView} description="This feature is coming soon!" />;
     }
   };
 
-  const viewTitle = useMemo(() => {
-    const titles: { [key in ActiveView]: string } = {
-        [ActiveView.QURAN_READER]: "Al-Quran Al-Karim",
-        [ActiveView.PRAYER_TIMES]: "Waktu Solat",
-        [ActiveView.QIBLA]: "Arah Qiblat",
-        [ActiveView.AI_COMPANION]: "Sobat AI Cerdas",
-        [ActiveView.TANYA_USTAZ]: "Tanya Ustaz",
-        [ActiveView.TAJWEED_COACH]: "Tutor Tajwid AI",
-        [ActiveView.STUDY_PLANNER]: "Pelan Pembelajaran AI",
-        [ActiveView.IBADAH_TRACKER]: "Penjejak Ibadah",
-        [ActiveView.DOA_ZIKR]: "Doa & Zikir Harian",
-        [ActiveView.JAWI_WRITER]: "Penulis Jawi AI",
-        [ActiveView.LIVE_CONVERSATION]: "Sembang Suara AI",
-        [ActiveView.ASMAUL_HUSNA]: "Asmaul Husna",
-        [ActiveView.INTERACTIVE_LESSON]: "Latihan Interaktif",
-        [ActiveView.LEADERBOARD]: "Papan Markah",
-        [ActiveView.ACHIEVEMENTS]: "Pencapaian",
-        [ActiveView.GEM_SHOP]: "Kedai Permata",
-        [ActiveView.DAILY_GOALS]: "Matlamat & Cabaran",
-        [ActiveView.LEARNING_PATH]: "Laluan Pembelajaran",
-        [ActiveView.TAFSIR]: "Tafsir & Asbabun Nuzul",
-        [ActiveView.KISAH_NABI]: "Kisah 25 Nabi",
-        [ActiveView.PANDUAN_IBADAH]: "Panduan Ibadah",
-        [ActiveView.TASBIH_DIGITAL]: "Tasbih Digital",
-        [ActiveView.SIRAH_NABAWIYAH]: "Sirah Nabawiyah",
-        [ActiveView.HIJRI_CALENDAR]: "Kalender Hijriyah",
-        [ActiveView.ARTICLES]: "Artikel Islami",
-        [ActiveView.HALAL_CHECKER]: "Penyemak Kod Halal",
-    };
-    return titles[activeView];
-  }, [activeView]);
+  const getCurrentViewTitle = () => {
+    for (const section of sidebarSections) {
+      const item = section.items.find(item => item.view === activeView);
+      if (item) return item.label;
+    }
+    return 'QuranPulse'; // Fallback title
+  };
 
   return (
-    <AudioProvider>
-      <div className="flex h-screen bg-background-light dark:bg-background-dark font-sans text-foreground-light dark:text-foreground-dark">
-        <Sidebar activeView={activeView} setActiveView={handleNavigation} isOpen={isSidebarOpen} setOpen={setSidebarOpen} />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <header className="flex-shrink-0 p-4 border-b border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark z-20">
-            <div className="flex justify-between items-center h-full">
-              <div className="flex items-center gap-4">
-                <Button onClick={() => setSidebarOpen(!isSidebarOpen)} variant="ghost" size="icon" className="md:hidden text-foreground-light dark:text-foreground-dark">
-                    <MenuIcon />
-                </Button>
-                <h1 className="text-xl font-bold text-primary md:hidden">{viewTitle}</h1>
-              </div>
-              <div className="flex-1 min-w-0 px-4">
-                  <GlobalAudioPlayer />
-              </div>
-              <Button onClick={toggleTheme} variant="ghost" size="icon">
-                {theme === Theme.LIGHT ? <MoonIcon /> : <SunIcon />}
-              </Button>
-            </div>
-          </header>
-          <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-            {/* 
-              P1 OPTIMIZATION: SUSPENSE WRAPPER
-              The <Suspense> component from React allows us to display a loading indicator (the 'fallback')
-              while waiting for the lazy-loaded component to be downloaded and rendered.
-            */}
-            <Suspense fallback={<LoadingFallback />}>
-              {renderActiveView()}
-            </Suspense>
-          </main>
-        </div>
+    <div className={cn("flex h-screen bg-background-light dark:bg-background-dark text-foreground-light dark:text-foreground-dark font-sans", theme)}>
+      {showOnboarding && <OnboardingTutorial onClose={handleCloseOnboarding} />}
+      <Sidebar 
+        activeView={activeView} 
+        setActiveView={handleSetActiveView}
+      />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <header className="flex-shrink-0 h-16 bg-card-light dark:bg-card-dark border-b border-border-light dark:border-border-dark flex items-center justify-between px-4 md:px-6">
+          <div className="md:hidden">
+            <h1 className="text-xl font-bold text-primary">{getCurrentViewTitle()}</h1>
+          </div>
+          <div className="flex-1">
+             <GlobalAudioPlayer />
+          </div>
+          <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
+// FIX: Replaced string literal 'light' with Theme.LIGHT enum member for correct type comparison.
+            {theme === Theme.LIGHT ? <MoonIcon /> : <SunIcon />}
+          </button>
+        </header>
+        
+        {/* Add padding-bottom to prevent content from being hidden by the bottom nav */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
+          <Suspense fallback={<LoadingSpinner />}>
+            {renderActiveView()}
+          </Suspense>
+        </main>
       </div>
-    </AudioProvider>
+      
+      {/* Mobile-only Bottom Navigation */}
+      <BottomNavBar
+        activeView={activeView}
+        setActiveView={handleSetActiveView}
+      />
+    </div>
   );
-};
+}
 
 export default App;

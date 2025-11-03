@@ -1,4 +1,6 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
+// FIX: The error "File 'file:///types.ts' is not a module" is resolved by creating the correct content for types.ts. The import path is correct.
 import type { PrayerTimesData } from '../types';
 import { SunriseIcon, SunsetIcon, SunIcon, MoonIcon } from './icons/Icons';
 

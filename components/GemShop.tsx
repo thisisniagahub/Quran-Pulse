@@ -1,6 +1,10 @@
+
+
+
 import React, { useState } from 'react';
 // FIX: Imported the missing StarIcon.
 import { ShoppingCartIcon, GemIcon, ShieldIcon, ZapIcon, ClockIcon, HeartIcon, SparklesIcon, CrownIcon, PaletteIcon, StarIcon } from './icons/Icons';
+import { PurchaseGemsModal } from './PurchaseGemsModal';
 
 interface ShopItem {
   id: string;
@@ -16,7 +20,11 @@ interface ShopItem {
 const GemShop: React.FC = () => {
   const [gems, setGems] = useState(450);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [cart, setCart] = useState<string[]>([]);
+  const [isModalOpen, setModalOpen] = useState(false);
+
+  const handleAddGems = (amount: number) => {
+    setGems(prevGems => prevGems + amount);
+  };
 
   const shopItems: ShopItem[] = [
     // Power-ups
@@ -236,7 +244,10 @@ const GemShop: React.FC = () => {
             <button className="px-8 py-3 bg-white text-purple-600 rounded-xl font-bold hover:bg-gray-100 transition-colors">
               Tonton Iklan (+10 Permata)
             </button>
-            <button className="px-8 py-3 bg-yellow-400 text-gray-800 rounded-xl font-bold hover:bg-yellow-300 transition-colors">
+            <button
+              onClick={() => setModalOpen(true)}
+              className="px-8 py-3 bg-yellow-400 text-gray-800 rounded-xl font-bold hover:bg-yellow-300 transition-colors"
+            >
               Beli Pek Permata
             </button>
           </div>
@@ -268,6 +279,12 @@ const GemShop: React.FC = () => {
             Log masuk setiap hari untuk dapat hadiah! Hari ke-7: <span className="font-bold text-yellow-500">50 Permata + Lencana Lagenda</span>
           </p>
         </div>
+        
+        <PurchaseGemsModal
+          isOpen={isModalOpen}
+          onClose={() => setModalOpen(false)}
+          onPurchaseSuccess={handleAddGems}
+        />
     </div>
   );
 };

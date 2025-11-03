@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+// FIX: The error "File 'file:///types.ts' is not a module" is resolved by creating the correct content for types.ts. The import path is correct.
 import type { Surah } from '../types';
 import { useAudioPlayer } from '../context/AudioContext';
 

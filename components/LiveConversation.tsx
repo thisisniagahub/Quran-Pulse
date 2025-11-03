@@ -1,14 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, Blob } from '@google/genai';
 import { ChatBubbleIcon, SparklesIcon, StopCircleIcon } from './icons/Icons';
-// P2 REFACTOR: Import shared audio utilities instead of defining them locally.
 import { encode, decode, decodeAudioData, createBlob } from '../utils/audio';
+import { AgentSelector } from './ui/AgentSelector';
+import { AGENT_DEFINITIONS } from '../lib/agents';
+import type { Agent } from '../lib/agents';
 
+type AgentId = 'gemini' | 'glm';
 
 export const LiveConversation: React.FC = () => {
     const [status, setStatus] = useState<'idle' | 'connecting' | 'listening' | 'speaking' | 'error'>('idle');
     const [transcripts, setTranscripts] = useState<{ sender: 'user' | 'ai', text: string }[]>([]);
     const [error, setError] = useState<string | null>(null);
+    const [selectedAgentId, setSelectedAgentId] = useState<AgentId>('gemini');
+
+    const agentSet = AGENT_DEFINITIONS.liveConversation;
+    const activeAgent: Agent = agentSet[selectedAgentId];
 
     const sessionPromiseRef = useRef<Promise<any> | null>(null);
     const streamRef = useRef<MediaStream | null>(null);
@@ -52,15 +59,13 @@ export const LiveConversation: React.FC = () => {
             audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
             outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
             nextStartTimeRef.current = 0;
-
-            const systemInstruction = `You are 'Sobat Suara', a friendly and knowledgeable Islamic AI assistant. Your goal is to have a natural, helpful voice conversation with the user in Bahasa Melayu. Answer their general Islamic questions, explain concepts simply, and maintain a warm, encouraging, and respectful tone. Avoid complex theological debates and stick to mainstream, widely accepted Islamic knowledge. If a question is too complex or sensitive, gently suggest the user consult a qualified human scholar.`;
-
+            
             sessionPromiseRef.current = ai.live.connect({
-                model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+                model: activeAgent.model,
                 config: {
                     responseModalities: [Modality.AUDIO],
                     speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
-                    systemInstruction: systemInstruction,
+                    systemInstruction: activeAgent.systemInstruction,
                     inputAudioTranscription: {},
                     outputAudioTranscription: {},
                 },
@@ -102,6 +107,7 @@ export const LiveConversation: React.FC = () => {
             console.error("Failed to start session:", error);
             setError("Gagal memulakan sesi. Pastikan anda memberi kebenaran mikrofon.");
             setStatus('error');
+            cleanupAudio();
         }
     };
     
@@ -169,7 +175,7 @@ export const LiveConversation: React.FC = () => {
             case 'idle': return 'Mula Sembang';
             case 'connecting': return 'Menyambung...';
             case 'listening': return 'Mendengar...';
-            case 'speaking': return 'Sobat AI sedang bercakap...';
+            case 'speaking': return `${activeAgent.name} sedang bercakap...`;
             case 'error': return 'Ralat';
             default: return 'Mula Sembang';
         }
@@ -182,9 +188,17 @@ export const LiveConversation: React.FC = () => {
             
             <div className="flex-1 bg-card-light dark:bg-card-dark p-6 rounded-xl shadow-sm flex flex-col">
                 <div className="flex-1 overflow-y-auto mb-6 pr-2 space-y-4">
+                     {transcripts.length === 0 && (
+                        <AgentSelector
+                            agents={Object.values(agentSet)}
+                            selectedAgentId={selectedAgentId}
+                            onSelectAgent={(id) => { if(status === 'idle') setSelectedAgentId(id)}}
+                            title="Pilih Rakan Sembang"
+                        />
+                     )}
                     {transcripts.map((t, i) => (
                         <div key={i} className={`flex items-start gap-3 ${t.sender === 'user' ? 'justify-end' : ''}`}>
-                            {t.sender === 'ai' && <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary self-start shrink-0"><SparklesIcon className="w-5 h-5"/></div>}
+                            {t.sender === 'ai' && <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary self-start shrink-0">{activeAgent.icon}</div>}
                             <div className={`p-3 rounded-lg max-w-md text-left ${t.sender === 'ai' ? 'bg-background-light dark:bg-background-dark' : 'bg-primary text-white'}`}>
                                 <p>{t.text}</p>
                             </div>
@@ -193,7 +207,7 @@ export const LiveConversation: React.FC = () => {
                     {transcripts.length === 0 && status === 'idle' && (
                         <div className="flex flex-col items-center justify-center h-full text-foreground-light/60 dark:text-foreground-dark/60">
                             <ChatBubbleIcon className="w-16 h-16 mb-4"/>
-                            <p>Tekan butang untuk memulakan perbualan.</p>
+                            <p>Tekan butang di bawah untuk memulakan perbualan.</p>
                         </div>
                     )}
                     <div ref={transcriptsEndRef} />
