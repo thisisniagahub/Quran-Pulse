@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ChatInterface } from './ChatInterface';
 import { getChatMessages, addChatMessage } from '../services/dbService';
 import type { ChatMessage, ActiveView } from '../types';
 import { AGENT_DEFINITIONS } from '../lib/agents';
 import { AgentSelector } from './ui/AgentSelector';
 import type { Agent } from '../lib/agents';
+import { debounce } from '../utils/debounce';
 
 type UIMessage = ChatMessage & { id: number };
 type AgentId = 'gemini' | 'glm';
@@ -37,12 +38,13 @@ export const AICompanion: React.FC<AICompanionProps> = ({ setActiveView }) => {
         loadHistory();
     }, []);
 
-    const handleSend = async () => {
-        if (!input.trim() || isLoading) return;
+    // Debounced version of handleSend to prevent multiple rapid calls
+    const debouncedHandleSend = useCallback(debounce(async (inputText: string) => {
+        if (!inputText.trim() || isLoading) return;
 
-        const userMessage: ChatMessage = { sender: 'user', text: input.trim() };
+        const userMessage: ChatMessage = { sender: 'user', text: inputText.trim() };
         setMessages(prev => [...prev, { ...userMessage, id: prev.length + 1 }]);
-        setInput('');
+        
         setIsLoading(true);
 
         try {
@@ -52,7 +54,7 @@ export const AICompanion: React.FC<AICompanionProps> = ({ setActiveView }) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    prompt: input.trim(),
+                    prompt: inputText.trim(),
                     model: activeAgent.model,
                     systemInstruction: activeAgent.systemInstruction,
                 }),
@@ -76,7 +78,24 @@ export const AICompanion: React.FC<AICompanionProps> = ({ setActiveView }) => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, 300), [isLoading, activeAgent]);
+
+    const handleSend = useCallback(() => {
+        debouncedHandleSend(input);
+        setInput(''); // Clear input immediately
+    }, [input, debouncedHandleSend]);
+
+    // Also debounce input changes for real-time suggestions if needed
+    const [debouncedInput, setDebouncedInput] = useState(input);
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedInput(input);
+        }, 500); // Update debounced input after 500ms of no typing
+
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [input]);
     
     return (
         <ChatInterface

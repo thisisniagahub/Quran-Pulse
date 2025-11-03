@@ -9,6 +9,7 @@ import { Card, CardContent } from './ui/Card';
 import { AgentSelector } from './ui/AgentSelector';
 import { AGENT_DEFINITIONS } from '../lib/agents';
 import type { Agent } from '../lib/agents';
+import { EnhancedVirtualList } from './VirtualList';
 
 type AgentId = 'gemini' | 'glm';
 
@@ -94,13 +95,23 @@ export const QuranReader: React.FC<QuranReaderProps> = ({
                             <ChevronDownIcon className="w-4 h-4 ml-2" />
                         </Button>
                         {isSurahListOpen && (
-                            <div className="absolute z-10 top-full mt-2 w-full max-h-60 overflow-y-auto bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-lg shadow-lg">
-                                {surahListData.map(s => (
-                                    <div key={s.number} onClick={() => handleSurahChange(s.number)} className="p-3 hover:bg-primary/10 cursor-pointer text-left">
-                                        <p className="font-bold">{s.number}. {s.englishName}</p>
-                                        <p className="text-sm text-foreground-light/70">{s.name}</p>
-                                    </div>
-                                ))}
+                            <div className="absolute z-10 top-full mt-2 w-full max-h-60 bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-lg shadow-lg">
+                                <EnhancedVirtualList
+                                    items={surahListData}
+                                    itemHeight={60} // Approximate height for each surah item
+                                    renderItem={(s, index) => (
+                                        <div 
+                                            key={s.number} 
+                                            onClick={() => handleSurahChange(s.number)} 
+                                            className="p-3 hover:bg-primary/10 cursor-pointer text-left border-b border-border-light/50 dark:border-border-dark/50 last:border-b-0"
+                                        >
+                                            <p className="font-bold">{s.number}. {s.englishName}</p>
+                                            <p className="text-sm text-foreground-light/70">{s.name}</p>
+                                        </div>
+                                    )}
+                                    containerHeight={240} // Show 4 items at a time (60px * 4)
+                                    className="overflow-y-auto"
+                                />
                             </div>
                         )}
                     </div>

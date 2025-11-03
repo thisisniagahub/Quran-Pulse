@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { PracticeMaterial, TajweedSession } from '../types';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { getTajweedFeedback, TajweedFeedback } from '../services/geminiService';
@@ -7,6 +7,7 @@ import { Button } from './ui/Button';
 import { Card, CardContent } from './ui/Card';
 import { MicrophoneIcon, StopCircleIcon, ChevronLeftIcon, SparklesIcon, CheckCircleIcon } from './icons/Icons';
 import type { Agent } from '../lib/agents';
+import audioWorkerManager from '../utils/workerManager';
 
 interface TajweedCoachProps {
     practiceMaterial: PracticeMaterial;
@@ -20,6 +21,7 @@ export const TajweedCoach: React.FC<TajweedCoachProps> = ({ practiceMaterial, on
     const [feedback, setFeedback] = useState<TajweedFeedback | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [useWorker, setUseWorker] = useState(true);
 
     const { isListening, startListening, stopListening, isSupported } = useSpeechRecognition({
         onResult: (text, final) => {
@@ -52,22 +54,38 @@ export const TajweedCoach: React.FC<TajweedCoachProps> = ({ practiceMaterial, on
         setIsLoading(true);
         setError(null);
         setFeedback(null);
-        const fb = await getTajweedFeedback(practiceMaterial.content, transcript, agent);
-        if (fb) {
-            setFeedback(fb);
-            const sessionData: Omit<TajweedSession, 'id' | 'timestamp'> = {
-                material: practiceMaterial,
-                transcripts: [
-                    { sender: 'ai', text: practiceMaterial.content },
-                    { sender: 'user', text: transcript }
-                ],
-                accuracy: fb.accuracy,
-            };
-            await addTajweedSession(sessionData);
-        } else {
-            setError("Gagal mendapatkan maklum balas. Sila cuba lagi.");
+        
+        try {
+            let fb: TajweedFeedback | null = null;
+            
+            if (useWorker) {
+                // Use Web Worker for heavy processing to keep UI responsive
+                fb = await audioWorkerManager.analyzeTajweed(practiceMaterial.content, transcript);
+            } else {
+                // Fallback to direct API call
+                fb = await getTajweedFeedback(practiceMaterial.content, transcript, agent);
+            }
+            
+            if (fb) {
+                setFeedback(fb);
+                const sessionData: Omit<TajweedSession, 'id' | 'timestamp'> = {
+                    material: practiceMaterial,
+                    transcripts: [
+                        { sender: 'ai', text: practiceMaterial.content },
+                        { sender: 'user', text: transcript }
+                    ],
+                    accuracy: fb.accuracy,
+                };
+                await addTajweedSession(sessionData);
+            } else {
+                setError("Gagal mendapatkan maklum balas. Sila cuba lagi.");
+            }
+        } catch (err) {
+            console.error('Error getting feedback:', err);
+            setError("Ralat berlaku semasa mendapatkan maklum balas. Sila cuba lagi.");
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     };
 
     const resetPractice = () => {
@@ -104,6 +122,20 @@ export const TajweedCoach: React.FC<TajweedCoachProps> = ({ practiceMaterial, on
                  <p className="mt-4 font-semibold h-6">
                     {isListening ? "Mendengar..." : (feedback ? "Sesi Selesai" : "Tekan untuk mula merakam")}
                  </p>
+                 
+                 {/* Toggle for Web Worker usage - for debugging/optimization */}
+                 <div className="mt-2 text-sm">
+                     <label className="inline-flex items-center cursor-pointer">
+                         <input
+                             type="checkbox"
+                             checked={useWorker}
+                             onChange={(e) => setUseWorker(e.target.checked)}
+                             className="sr-only peer"
+                         />
+                         <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/10 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                         <span className="ms-3">Gunakan Web Worker</span>
+                     </label>
+                 </div>
             </div>
             
              {error && <div className="text-center p-4 bg-primary/10 text-primary rounded-lg my-4">{error}</div>}
