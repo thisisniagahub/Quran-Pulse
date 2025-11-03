@@ -8,16 +8,37 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: "var(--primary)",
-        "primary-light": "var(--primary-light)",
-        "primary-dark": "var(--primary-dark)",
-        accent: "var(--accent)",
-        "accent-light": "var(--accent-light)",
-        "accent-dark": "var(--accent-dark)",
-        background: "var(--background)",
-        "background-dark": "var(--background-dark)",
-        text: "var(--text)",
-        "text-light": "var(--text-light)",
+        // Islamic Modern Color Palette
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+        border: "hsl(var(--border))",
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        success: "hsl(var(--success))",
+        warning: "hsl(var(--warning))",
+        info: "hsl(var(--info))",
       },
     },
   },

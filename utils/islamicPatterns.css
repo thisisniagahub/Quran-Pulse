@@ -1,0 +1,197 @@
+/**
+ * Islamic Geometric Patterns CSS Generator
+ * This utility provides CSS classes for Islamic geometric patterns
+ */
+
+/* Star and Polygon Patterns */
+.islamic-star-8point {
+  background-image: 
+    radial-gradient(circle at 50% 50%, 
+      var(--primary) 10%, 
+      transparent 10%),
+    radial-gradient(circle at 25% 25%, 
+      var(--primary) 5%, 
+      transparent 5%),
+    radial-gradient(circle at 75% 25%, 
+      var(--primary) 5%, 
+      transparent 5%),
+    radial-gradient(circle at 25% 75%, 
+      var(--primary) 5%, 
+      transparent 5%),
+    radial-gradient(circle at 75% 75%, 
+      var(--primary) 5%, 
+      transparent 5%);
+  background-size: 60px 60px;
+  background-position: 0 0, 0 0, 30px 0, 0 30px, 30px 30px;
+}
+
+.islamic-star-12point {
+  background-image: 
+    conic-gradient(from 0deg at 50% 50%, 
+      var(--primary) 0deg, 
+      transparent 30deg, 
+      var(--primary) 60deg, 
+      transparent 90deg,
+      var(--primary) 120deg,
+      transparent 150deg,
+      var(--primary) 180deg,
+      transparent 210deg,
+      var(--primary) 240deg,
+      transparent 270deg,
+      var(--primary) 300deg,
+      transparent 330deg,
+      var(--primary) 360deg);
+}
+
+.islamic-geometric-khatam {
+  background-image: 
+    linear-gradient(45deg, var(--primary) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--primary) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--primary) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--primary) 75%);
+  background-size: 40px 40px;
+  background-position: 0 0, 0 20px, 20px -20px, -20px 0px;
+}
+
+.islamic-geometric-arabesque {
+  background-image: 
+    radial-gradient(circle at 10px 10px, var(--primary) 2px, transparent 2px),
+    radial-gradient(circle at 30px 10px, var(--primary) 2px, transparent 2px),
+    radial-gradient(circle at 50px 10px, var(--primary) 2px, transparent 2px),
+    radial-gradient(circle at 70px 10px, var(--primary) 2px, transparent 2px),
+    radial-gradient(circle at 20px 30px, var(--primary) 2px, transparent 2px),
+    radial-gradient(circle at 40px 30px, var(--primary) 2px, transparent 2px),
+    radial-gradient(circle at 60px 30px, var(--primary) 2px, transparent 2px),
+    radial-gradient(circle at 30px 50px, var(--primary) 2px, transparent 2px),
+    radial-gradient(circle at 50px 50px, var(--primary) 2px, transparent 2px),
+    radial-gradient(circle at 40px 70px, var(--primary) 2px, transparent 2px);
+  background-size: 80px 80px;
+}
+
+.islamic-geometric-interlace {
+  background-image: 
+    linear-gradient(var(--primary) 1px, transparent 1px),
+    linear-gradient(90deg, var(--primary) 1px, transparent 1px),
+    linear-gradient(45deg, var(--primary) 1px, transparent 1px),
+    linear-gradient(-45deg, var(--primary) 1px, transparent 1px);
+  background-size: 40px 40px, 40px 40px, 60px 60px, 60px 60px;
+  background-position: 0 0, 0 0, 0 0, 0 0;
+}
+
+.islamic-geometric-zellige {
+  background-image: 
+    linear-gradient(30deg, var(--primary) 40%, transparent 40%),
+    linear-gradient(-30deg, var(--primary) 40%, transparent 40%),
+    linear-gradient(90deg, var(--primary) 20%, transparent 20%),
+    linear-gradient(90deg, transparent 80%, var(--primary) 80%);
+  background-size: 30px 52px;
+}
+
+.islamic-geometric-umbrella {
+  background-image: 
+    radial-gradient(circle at 50% 50%, 
+      var(--primary) 0%, 
+      var(--primary) 10%, 
+      transparent 10%,
+      transparent 100%);
+  background-size: 60px 60px;
+}
+
+.islamic-geometric-wave {
+  background-image: 
+    linear-gradient(45deg, var(--primary) 25%, transparent 25%, transparent 75%, var(--primary) 75%),
+    linear-gradient(45deg, var(--primary) 25%, transparent 25%, transparent 75%, var(--primary) 75%);
+  background-size: 40px 40px;
+  background-position: 0 0, 20px 20px;
+}
+
+/* Gradient variations for different colors */
+.islamic-pattern-primary {
+  --pattern-color: hsl(var(--primary));
+}
+
+.islamic-pattern-secondary {
+  --pattern-color: hsl(var(--secondary));
+}
+
+.islamic-pattern-accent {
+  --pattern-color: hsl(var(--accent));
+}
+
+.islamic-pattern-muted {
+  --pattern-color: hsl(var(--muted));
+}
+
+/* Opacity variations */
+.pattern-opacity-10 { opacity: 0.1; }
+.pattern-opacity-20 { opacity: 0.2; }
+.pattern-opacity-30 { opacity: 0.3; }
+.pattern-opacity-40 { opacity: 0.4; }
+.pattern-opacity-50 { opacity: 0.5; }
+.pattern-opacity-60 { opacity: 0.6; }
+.pattern-opacity-70 { opacity: 0.7; }
+.pattern-opacity-80 { opacity: 0.8; }
+.pattern-opacity-90 { opacity: 0.9; }
+
+/* Pattern sizes */
+.pattern-size-xs { background-size: 15px 15px; }
+.pattern-size-sm { background-size: 25px 25px; }
+.pattern-size-md { background-size: 40px 40px; }
+.pattern-size-lg { background-size: 60px 60px; }
+.pattern-size-xl { background-size: 80px 80px; }
+
+/* Animated patterns */
+.islamic-pattern-animated {
+  animation: patternShift 20s linear infinite;
+}
+
+@keyframes patternShift {
+  0% { background-position: 0 0; }
+  100% { background-position: 100px 100px; }
+}
+
+/* Special Islamic patterns */
+.islamic-bismillah-bg {
+  background: linear-gradient(135deg, 
+    hsl(var(--background)) 0%, 
+    hsl(var(--card)) 50%, 
+    hsl(var(--background)) 100%);
+  position: relative;
+}
+
+.islamic-bismillah-bg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 20% 30%, 
+      hsla(var(--primary), 0.05) 0%, 
+      transparent 20%),
+    radial-gradient(circle at 80% 70%, 
+      hsla(var(--accent), 0.05) 0%, 
+      transparent 20%),
+    radial-gradient(circle at 50% 50%, 
+      hsla(var(--secondary), 0.03) 0%, 
+      transparent 15%);
+  pointer-events: none;
+}
+
+/* Pattern combinations */
+.islamic-complex-geometric {
+  background-image: 
+    linear-gradient(45deg, hsla(var(--primary), 0.1) 25%, transparent 25%),
+    linear-gradient(-45deg, hsla(var(--accent), 0.1) 25%, transparent 25%),
+    radial-gradient(circle at 25% 25%, hsla(var(--secondary), 0.1) 10%, transparent 10%);
+  background-size: 80px 80px, 80px 80px, 100px 100px;
+  background-position: 0 0, 40px 40px, 0 0;
+}
+
+/* Responsive patterns */
+@media (max-width: 768px) {
+  .islamic-pattern-md { background-size: 30px 30px; }
+  .islamic-pattern-lg { background-size: 45px 45px; }
+  .islamic-pattern-xl { background-size: 60px 60px; }
+}

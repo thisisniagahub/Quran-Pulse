@@ -6,7 +6,7 @@
     <title>QuranPulse</title>
     
     <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#16a34a">
+    <meta name="theme-color" content="#059669">
     <meta name="description" content="A sophisticated and trustworthy Al-Quran SuperApp for Malaysia">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="QuranPulse">
@@ -21,48 +21,28 @@
     <!-- Optimized Font Loading -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Inter:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all';this.onload=null;">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Amiri+Quran:wght@400;700&family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran:wght@400;700&family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" media="print" onload="this.media='all';this.onload=null;">
     <noscript>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Inter:wght@400;500;600;700&display=swap">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran:wght@400;700&family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap">
     </noscript>
     
+    <!-- Islamic Theme Resources -->
+    <link rel="stylesheet" href="/utils/islamicPatterns.css">
+    <link rel="stylesheet" href="/utils/islamicTypography.css">
+    
     <style>
-        @media (prefers-color-scheme: light) {
-            :root {
-                --background: 50 30% 93%;
-                --foreground: 163 29% 17%;
-                --card: 50 30% 98%;
-                --border: 163 20% 80%;
-                --primary: 163 29% 17%;
-                --primary-foreground: 50 30% 98%;
-                --accent: 163 25% 35%;
-                --destructive: 0 84.2% 60.2%;
-                background-color: hsla(var(--background), 0.95);
-            }
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --background: 163 29% 10%;
-                --foreground: 50 30% 90%;
-                --card: 163 29% 13%;
-                --border: 163 25% 18%;
-                --primary: 50 30% 90%;
-                --primary-foreground: 163 29% 10%;
-                --accent: 163 30% 45%;
-                --destructive: 0 62.8% 30.6%;
-                background-color: hsla(var(--background), 0.95);
-            }
-        }
-
         /* Optimized font usage with fallbacks */
         .font-arabic { 
-            font-family: 'Amiri Quran', 'Amiri', serif; 
+            font-family: 'Amiri Quran', 'Noto Naskh Arabic', 'Amiri', serif; 
             font-display: swap;
         }
         .font-sans { 
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            font-family: 'Inter', 'Readex Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            font-display: swap;
+        }
+        .font-serif { 
+            font-family: 'Inter', 'Georgia', 'Times New Roman', serif; 
             font-display: swap;
         }
         
@@ -75,6 +55,26 @@
         .font-loaded {
             opacity: 1;
         }
+        
+        /* Islamic-themed text rendering */
+        .text-arabic {
+            direction: rtl;
+            text-align: right;
+            font-feature-settings: 'init' 1, 'medi' 1, 'fina' 1;
+        }
+        
+        .text-translation {
+            direction: ltr;
+            text-align: left;
+        }
+        
+        /* Golden ratio typography scale */
+        .text-scale-1 { font-size: 1rem; }
+        .text-scale-2 { font-size: 1.25rem; }
+        .text-scale-3 { font-size: 1.563rem; }
+        .text-scale-4 { font-size: 1.953rem; }
+        .text-scale-5 { font-size: 2.441rem; }
+        .text-scale-6 { font-size: 3.052rem; }
     </style>
 
     <!-- Tailwind Config -->
@@ -84,18 +84,42 @@
             theme: {
                 extend: {
                     colors: {
-                        background: 'hsl(var(--background))',
-                        foreground: 'hsl(var(--foreground))',
-                        card: 'hsl(var(--card))',
+                        background: {
+                            DEFAULT: 'hsl(var(--background))',
+                            light: 'hsl(var(--background))',
+                            dark: 'hsl(var(--background))'
+                        },
+                        foreground: {
+                            DEFAULT: 'hsl(var(--foreground))',
+                            light: 'hsl(var(--foreground))',
+                            dark: 'hsl(var(--foreground))'
+                        },
+                        card: {
+                            DEFAULT: 'hsl(var(--card))',
+                            foreground: 'hsl(var(--foreground))'
+                        },
                         border: 'hsl(var(--border))',
                         primary: {
                             DEFAULT: 'hsl(var(--primary))',
                             foreground: 'hsl(var(--primary-foreground))'
                         },
+                        secondary: {
+                            DEFAULT: 'hsl(var(--secondary))',
+                            foreground: 'hsl(var(--secondary-foreground))'
+                        },
                         accent: {
                             DEFAULT: 'hsl(var(--accent))',
+                            foreground: 'hsl(var(--accent-foreground))'
                         },
-                        destructive: 'hsl(var(--destructive))',
+                        destructive: {
+                            DEFAULT: 'hsl(var(--destructive))',
+                            foreground: 'hsl(var(--destructive-foreground))'
+                        },
+                    },
+                    fontFamily: {
+                        arabic: ['Amiri Quran', 'Noto Naskh Arabic', 'Arabic Transparent', 'serif'],
+                        sans: ['Inter', 'Readex Pro', 'system-ui', 'sans-serif'],
+                        serif: ['Inter', 'Georgia', 'serif'],
                     }
                 }
             }
@@ -105,7 +129,7 @@
     <!-- Preload critical resources -->
     <link rel="preload" href="/sw.js" as="script">
 </head>
-<body class="bg-background text-foreground">
+<body class="bg-background text-foreground islamic-subtle-geometry font-sans">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
 </body>
