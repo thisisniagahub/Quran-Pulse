@@ -2,7 +2,8 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import { rateLimit } from 'express-rate-limit';
-import { GoogleGenAI, Modality } from '@google/genai';
+// FIX: Import GenerateContentConfig for proper typing of conditional config objects.
+import { GoogleGenAI, Modality, GenerateContentConfig } from '@google/genai';
 
 // In Vercel, environment variables are managed in the project settings.
 if (!process.env.GEMINI_API_KEY) {
@@ -41,15 +42,22 @@ const handleApiError = (res: Response, error: any, context: string) => {
 // FIX: Use `Request` and `Response` types from express to correctly access `req.body` and `res` methods.
 app.post('/generate-content', async (req: Request, res: Response) => {
     try {
-        const { model, prompt, systemInstruction } = req.body;
+        const { model, prompt, systemInstruction } = req.body as { model?: string, prompt?: string, systemInstruction?: string };
         if (!prompt) return res.status(400).json({ error: 'Prompt is required.' });
         
+        // FIX: Conditionally build the config to avoid passing `undefined`.
+        const config: GenerateContentConfig = {};
+        if (systemInstruction) {
+            config.systemInstruction = systemInstruction;
+        }
+
         const response = await ai.models.generateContent({
             model: model || 'gemini-2.5-flash',
             contents: [{ parts: [{ text: prompt }] }],
-            config: { systemInstruction },
+            config,
         });
-        res.json({ text: response.text });
+        // FIX: Ensure response.text is handled safely if it's undefined.
+        res.json({ text: response.text ?? '' });
     } catch (error) {
         handleApiError(res, error, 'generate content');
     }
@@ -75,7 +83,13 @@ app.post('/generate-study-plan', async (req: Request, res: Response) => {
             contents: [{ parts: [{ text: prompt }] }],
             config: { systemInstruction, responseMimeType: 'application/json' }
         });
-        res.json(JSON.parse(response.text));
+        
+        // FIX: Add a check for `response.text` before parsing to prevent runtime errors.
+        const text = response.text;
+        if (!text) {
+            throw new Error("No text response received from AI for study plan.");
+        }
+        res.json(JSON.parse(text));
     } catch (error) {
         handleApiError(res, error, 'generate study plan');
     }
@@ -95,7 +109,8 @@ app.post('/convert-to-jawi', async (req: Request, res: Response) => {
             contents: [{ parts: [{ text: prompt }] }],
             config: { systemInstruction }
         });
-        res.json({ jawi: response.text.trim() });
+        // FIX: Safely handle potentially undefined text with nullish coalescing.
+        res.json({ jawi: response.text?.trim() ?? '' });
     } catch (error) {
         handleApiError(res, error, 'convert to Jawi');
     }
@@ -104,8 +119,11 @@ app.post('/convert-to-jawi', async (req: Request, res: Response) => {
 // FIX: Use `Request` and `Response` types from express to correctly access `req.body` and `res` methods.
 app.post('/generate-speech', async (req: Request, res: Response) => {
     try {
-        const { text, voice } = req.body;
-        if (!text) return res.status(400).json({ error: 'Text is required.' });
+        const { text, voice } = req.body as { text?: string, voice?: string };
+        // FIX: Add a stricter check for text to satisfy TypeScript's control flow analysis.
+        if (!text || typeof text !== 'string') {
+            return res.status(400).json({ error: 'Text is required and must be a string.' });
+        }
         
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash-preview-tts",
@@ -144,7 +162,13 @@ app.post('/tajweed-feedback', async (req: Request, res: Response) => {
             contents: [{ parts: [{ text: prompt }] }],
             config: { systemInstruction, responseMimeType: 'application/json' }
         });
-        res.json(JSON.parse(response.text));
+        
+        // FIX: Add a check for `response.text` before parsing.
+        const text = response.text;
+        if (!text) {
+            throw new Error("No text response received from AI for tajweed feedback.");
+        }
+        res.json(JSON.parse(text));
     } catch (error) {
         handleApiError(res, error, 'get tajweed feedback');
     }
@@ -181,8 +205,13 @@ app.post('/edit-image', async (req: Request, res: Response) => {
         const editedImagePart = response.candidates?.[0]?.content?.parts?.[0];
 
         if (editedImagePart && 'inlineData' in editedImagePart && editedImagePart.inlineData) {
-            const base64ImageBytes: string = editedImagePart.inlineData.data;
-            res.json({ imageData: base64ImageBytes });
+            // FIX: Check if `data` is a string before assigning it to a strictly typed variable.
+            const base64ImageBytes = editedImagePart.inlineData.data;
+            if (typeof base64ImageBytes === 'string') {
+                res.json({ imageData: base64ImageBytes });
+            } else {
+                 throw new Error('Image data received from AI model is malformed.');
+            }
         } else {
             throw new Error('No image data received from the AI model.');
         }
