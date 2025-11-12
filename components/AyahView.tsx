@@ -5,7 +5,7 @@ import { getAyahExplanation as getAyahExplanationFromService } from '../services
 import { addAyahExplanation, getAyahExplanation as getCachedExplanation } from '../services/dbService';
 import { generateSpeech } from '../services/geminiService';
 import { Button } from './ui/Button';
-import { SpeakerWaveIcon, BookOpenIcon, PlayIcon, StopCircleIcon } from './icons/Icons';
+import { SpeakerWaveIcon, BookOpenIcon, PlayIcon, StopCircleIcon, Share2Icon } from './icons/Icons';
 import { Card, CardContent } from './ui/Card';
 import { cn } from '../lib/utils';
 import type { Agent } from '../lib/agents';
@@ -102,19 +102,43 @@ export const AyahView: React.FC<AyahViewProps> = memo(({
     }
   };
 
+  const handleShare = async () => {
+    const shareText = `"${ayah.text}"\n\n"${translations.malay.text}"\n\n- Surah ${surahName}, Ayat ${ayah.numberInSurah}\n\nDikongsi melalui aplikasi QuranPulse.`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `QuranPulse: ${surahName} ${surahNumber}:${ayah.numberInSurah}`,
+          text: shareText,
+        });
+      } catch (error) {
+        console.log('Error sharing:', error);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareText);
+        alert('Ayat disalin ke papan klip!');
+      } catch (err) {
+        alert('Fungsi kongsi tidak disokong pada pelayar ini.');
+      }
+    }
+  };
+
   return (
     <div 
         ref={ayahRef}
         className={cn(
-            "p-4 border-b border-border-light dark:border-border-dark transition-colors duration-500",
-            (isActive || isAutoplaying) && 'bg-primary/10'
+            "border-b border-border-light dark:border-border-dark transition-all duration-300",
+            (isActive || isAutoplaying)
+                ? 'bg-yellow-100 dark:bg-yellow-900/30 border-l-4 border-yellow-500 py-4 pl-3 pr-4'
+                : 'p-4'
         )}
     >
       <div className="flex justify-between items-center mb-4">
         <span className="font-bold text-sm bg-primary/10 text-primary px-3 py-1 rounded-full">
             {surahNumber}:{ayah.numberInSurah}
         </span>
-        <p dir="rtl" className="font-arabic text-3xl text-right leading-relaxed">
+        <p dir="rtl" className="font-arabic text-3xl md:text-4xl text-right leading-relaxed md:leading-loose antialiased">
             {ayah.text} <span className="text-primary text-2xl font-sans">۝{ayah.numberInSurah}</span>
         </p>
       </div>
@@ -134,13 +158,23 @@ export const AyahView: React.FC<AyahViewProps> = memo(({
                 <BookOpenIcon className="w-4 h-4" />
                 {showTafsir ? 'Tutup Tafsir' : 'Tafsir AI'}
             </Button>
+            <Button onClick={handleShare} variant="ghost" size="sm" className="gap-2">
+                <Share2Icon className="w-4 h-4" />
+                Kongsi
+            </Button>
         </div>
       
-      {showTafsir && (
-         <Card className="mt-4 bg-background-light dark:bg-background-dark">
+        <div className={cn(
+            "overflow-hidden transition-all duration-500 ease-in-out",
+            showTafsir ? "max-h-[1000px] opacity-100 mt-4" : "max-h-0 opacity-0"
+        )}>
+         <Card className="bg-background-light dark:bg-background-dark">
             <CardContent className="p-4">
                 {isLoadingTafsir ? (
-                    <p>Memuatkan tafsir...</p>
+                    <div className="flex items-center gap-2 text-sm">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                        <span>Memuatkan tafsir...</span>
+                    </div>
                 ) : (
                     <>
                         <div className="flex justify-between items-center mb-2">
@@ -149,12 +183,12 @@ export const AyahView: React.FC<AyahViewProps> = memo(({
                                  <SpeakerWaveIcon className="w-5 h-5"/>
                              </Button>
                         </div>
-                        <p className="text-sm">{tafsir}</p>
+                        <p className="text-sm whitespace-pre-line">{tafsir}</p>
                     </>
                 )}
             </CardContent>
          </Card>
-      )}
+      </div>
     </div>
   );
 });

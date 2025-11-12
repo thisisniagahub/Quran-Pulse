@@ -2,7 +2,6 @@
 // This client-side service communicates with our own server.
 import type { StudyPlan, TajweedSession } from '../types';
 import type { Agent } from '../lib/agents';
-import { debounce } from '../utils/debounce';
 
 const API_BASE_URL = '/api'; // Use relative path for proxy
 
@@ -22,9 +21,6 @@ async function postData<T>(url = '', data = {}): Promise<T> {
   }
   return response.json();
 }
-
-// Debounced functions to limit API calls and reduce costs
-const debouncedPostData = debounce(postData, 500);
 
 /**
  * Generates a personalized study plan using the AI model.
@@ -46,35 +42,21 @@ export const generateStudyPlan = async (goal: string, duration: string, level: s
 };
 
 /**
- * Converts Rumi text to Jawi script with debouncing to limit API calls.
+ * Converts Rumi text to Jawi script.
  */
 export const convertToJawi = async (rumiText: string, agent: Agent): Promise<string> => {
-  if (!rumiText.trim()) return '';
-  
-  // For real-time conversion, we debounce to avoid excessive API calls
-  return new Promise((resolve, reject) => {
-    const debouncedConvert = debounce(async (text: string) => {
-      try {
-        const data = await postData<{ jawi: string }>('/convert-to-jawi', { 
-            rumiText: text,
-            model: agent.model,
-            systemInstruction: agent.systemInstruction
-        });
-        resolve(data.jawi);
-      } catch (error) {
-        console.error('Error converting to Jawi:', error);
-        reject(error);
-      }
-    }, 300);
-    debouncedConvert(rumiText);
+  const data = await postData<{ jawi: string }>('/convert-to-jawi', { 
+      rumiText,
+      model: agent.model,
+      systemInstruction: agent.systemInstruction
   });
+  return data.jawi;
 };
 
 /**
- * Generates speech from text with debouncing for continuous input.
+ * Generates speech from text.
  */
 export const generateSpeech = async (text: string): Promise<string | null> => {
-  if (!text) return null;
     try {
         const data = await postData<{ audioData: string }>('/generate-speech', { text });
         return data.audioData;
@@ -94,7 +76,7 @@ export interface TajweedFeedback {
 }
 
 /**
- * Gets AI feedback on a user's recitation with debouncing to limit expensive API calls.
+ * Gets AI feedback on a user's recitation.
  */
 export const getTajweedFeedback = async (originalText: string, userTranscript: string, agent: Agent): Promise<TajweedFeedback | null> => {
     try {
@@ -112,7 +94,7 @@ export const getTajweedFeedback = async (originalText: string, userTranscript: s
 };
 
 /**
- * Generates an explanation for a Quranic ayah with debouncing to avoid API spam.
+ * Generates an explanation for a Quranic ayah.
  */
 export const getAyahExplanation = async (surahName: string, ayahNumber: number, ayahText: string, translation: string, agent: Agent): Promise<string | null> => {
     try {
@@ -122,7 +104,6 @@ export const getAyahExplanation = async (surahName: string, ayahNumber: number, 
         - Text: "${ayahText}"
         - Translation: "${translation}"`;
 
-        // Debounce to avoid multiple requests for the same ayah when user is navigating quickly
         const data = await postData<{ text: string }>('/generate-content', { 
             prompt,
             model: agent.model,
@@ -136,11 +117,10 @@ export const getAyahExplanation = async (surahName: string, ayahNumber: number, 
 };
 
 /**
- * Generates content for a generic prompt with debouncing to limit API usage.
+ * Generates content for a generic prompt.
  */
 export const generateGenericContent = async (prompt: string, agent: Agent): Promise<string | null> => {
     try {
-        // Debounced version to prevent spamming the API with rapid requests
         const data = await postData<{ text: string }>('/generate-content', { 
             prompt,
             model: agent.model,

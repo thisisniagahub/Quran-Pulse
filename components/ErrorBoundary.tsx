@@ -3,8 +3,6 @@ import { ErrorFallback } from './ErrorFallback';
 
 interface Props {
   children: ReactNode;
-  // FIX: Explicitly type the ReactElement generic to `any` to avoid type inference issues
-  // with React.cloneElement in some TypeScript configurations. This resolves the overload error.
   fallback?: React.ReactElement<any>;
   onReset?: () => void;
 }
@@ -15,10 +13,10 @@ interface State {
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  state: State = {
-    hasError: false,
-    error: null,
-  };
+  constructor(props: Props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
 
   static getDerivedStateFromError(error: Error): State {
     // Update state so the next render will show the fallback UI.

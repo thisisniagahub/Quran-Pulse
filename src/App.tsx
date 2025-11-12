@@ -2,17 +2,19 @@ import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { GlobalAudioPlayer } from './components/GlobalAudioPlayer';
 import { BottomNavBar } from './components/BottomNavBar';
-import { SunIcon, MoonIcon } from './components/icons/Icons';
+// FIX: Add MenuIcon for the mobile sidebar toggle.
+import { SunIcon, MoonIcon, MenuIcon } from './components/icons/Icons';
 import { ActiveView, Theme } from './types';
 import { cn } from './lib/utils';
-import { sidebarSections } from './components/Sidebar'; // Import for title lookup
 import { OnboardingTutorial } from './components/OnboardingTutorial';
 
 // --- Lazy-loaded Components ---
-const QuranReader = lazy(() => import('./components/QuranReader').then(module => ({ default: module.QuranReader })));
+// FIX: Using default exports with lazy loading to ensure proper type inference for component props.
+const QuranReader = lazy(() => import('./components/QuranReader'));
 const PrayerTimes = lazy(() => import('./components/PrayerTimes').then(module => ({ default: module.PrayerTimes })));
 const QiblaCompass = lazy(() => import('./components/QiblaCompass').then(module => ({ default: module.QiblaCompass })));
-const AICompanion = lazy(() => import('./components/AICompanion').then(module => ({ default: module.AICompanion })));
+// FIX: Using default exports with lazy loading to ensure proper type inference for component props.
+const AICompanion = lazy(() => import('./components/AICompanion'));
 const TanyaUstaz = lazy(() => import('./components/TanyaUstaz').then(module => ({ default: module.TanyaUstaz })));
 const TajweedTutor = lazy(() => import('./components/TajweedTutor').then(module => ({ default: module.TajweedTutor })));
 const StudyPlanner = lazy(() => import('./components/StudyPlanner').then(module => ({ default: module.StudyPlanner })));
@@ -36,7 +38,9 @@ const HijriCalendarView = lazy(() => import('./components/HijriCalendarView').th
 const ArtikelIslamiView = lazy(() => import('./components/ArtikelIslamiView').then(module => ({ default: module.ArtikelIslamiView })));
 const HalalCheckerView = lazy(() => import('./components/HalalCheckerView').then(module => ({ default: module.HalalCheckerView })));
 const ImageEditor = lazy(() => import('./components/ImageEditor').then(module => ({ default: module.ImageEditor })));
-const PlaceholderView = lazy(() => import('./components/PlaceholderView').then(module => ({ default: module.PlaceholderView })));
+const DailyQuoteView = lazy(() => import('./components/DailyQuoteView'));
+// FIX: Using default exports with lazy loading to ensure proper type inference for component props.
+const PlaceholderView = lazy(() => import('./components/PlaceholderView'));
 
 const LoadingSpinner = () => (
     <div className="flex justify-center items-center h-full">
@@ -49,6 +53,8 @@ function App() {
   const [viewParams, setViewParams] = useState<any | null>(null);
   const [theme, setTheme] = useState<Theme>(Theme.LIGHT);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  // FIX: Add state to manage the sidebar's visibility on mobile.
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     // Check for onboarding completion
@@ -83,6 +89,8 @@ function App() {
   const handleSetActiveView = (view: ActiveView, params?: any) => {
     setActiveView(view);
     setViewParams(params || null);
+    // FIX: Close the sidebar when a navigation item is clicked.
+    setIsSidebarOpen(false); // Close sidebar on navigation
   };
   
   const handleAutoplayHandled = () => {
@@ -147,41 +155,43 @@ function App() {
         return <HalalCheckerView />;
       case ActiveView.IMAGE_EDITOR:
         return <ImageEditor />;
+      case ActiveView.DAILY_QUOTE:
+        return <DailyQuoteView />;
       default:
-        return <PlaceholderView title={activeView} description="This feature is coming soon!" />;
+        return <PlaceholderView title={activeView as string} description="This feature is coming soon!" />;
     }
-  };
-
-  const getCurrentViewTitle = () => {
-    for (const section of sidebarSections) {
-      const item = section.items.find(item => item.view === activeView);
-      if (item) return item.label;
-    }
-    return 'QuranPulse'; // Fallback title
   };
 
   return (
-    <div className={cn("flex h-screen bg-background-light dark:bg-background-dark text-foreground-light dark:text-foreground-dark font-sans", theme)}>
+    <div className={cn("flex h-screen bg-background text-foreground font-sans", theme)}>
       {showOnboarding && <OnboardingTutorial onClose={handleCloseOnboarding} />}
       <Sidebar 
         activeView={activeView} 
         setActiveView={handleSetActiveView}
+        // FIX: Pass the required isOpen and onClose props to the Sidebar component.
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
       />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="flex-shrink-0 h-16 bg-card-light dark:bg-card-dark border-b border-border-light dark:border-border-dark flex items-center justify-between px-4 md:px-6">
-          <div className="md:hidden">
-            <h1 className="text-xl font-bold text-primary">{getCurrentViewTitle()}</h1>
-          </div>
-          <div className="flex-1">
-             <GlobalAudioPlayer />
-          </div>
-          <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
-// FIX: Replaced string literal 'light' with Theme.LIGHT enum member for correct type comparison.
-            {theme === Theme.LIGHT ? <MoonIcon /> : <SunIcon />}
-          </button>
+        {/* FIX: Replaced header with a version that includes a mobile menu button to toggle the sidebar. */}
+        <header className="flex-shrink-0 h-16 bg-card border-b border-border flex items-center justify-between px-4 md:px-6">
+            <div className="w-10">
+                <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
+                    <MenuIcon />
+                </button>
+            </div>
+            
+            <div className="flex-1">
+                <GlobalAudioPlayer />
+            </div>
+
+            <div className="w-10 flex justify-end">
+                <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
+                    {theme === Theme.LIGHT ? <MoonIcon /> : <SunIcon />}
+                </button>
+            </div>
         </header>
         
-        {/* Add padding-bottom to prevent content from being hidden by the bottom nav */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
           <Suspense fallback={<LoadingSpinner />}>
             {renderActiveView()}
@@ -189,7 +199,6 @@ function App() {
         </main>
       </div>
       
-      {/* Mobile-only Bottom Navigation */}
       <BottomNavBar
         activeView={activeView}
         setActiveView={handleSetActiveView}

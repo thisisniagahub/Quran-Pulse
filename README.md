@@ -219,4 +219,3 @@ Dibuat dengan ❤️ untuk Ummah
 **QuranPulse** - Teman Harian Anda untuk Pertumbuhan Rohani
 
 </div>
-# Vercel Deployment Test

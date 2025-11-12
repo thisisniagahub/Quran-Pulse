@@ -34,6 +34,8 @@ export enum ActiveView {
   HIJRI_CALENDAR = 'hijri-calendar',
   ARTICLES = 'articles',
   HALAL_CHECKER = 'halal-checker',
+  IMAGE_EDITOR = 'image-editor',
+  DAILY_QUOTE = 'daily-quote',
 }
 
 // --- Quran Data ---
@@ -177,12 +179,14 @@ export interface AudioContextType {
   currentTime: number;
   duration: number;
   error: string | null;
+  playbackRate: number;
   playTrack: (track: AudioTrack) => void;
   togglePlayPause: () => void;
   stop: () => void;
   seek: (time: number) => void;
   retry: () => void;
   dismissError: () => void;
+  setPlaybackRate: (rate: number) => void;
 }
 
 // --- Static Content Types ---

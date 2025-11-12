@@ -2,10 +2,9 @@ import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { GlobalAudioPlayer } from './components/GlobalAudioPlayer';
 import { BottomNavBar } from './components/BottomNavBar';
-import { SunIcon, MoonIcon } from './components/icons/Icons';
+import { SunIcon, MoonIcon, MenuIcon } from './components/icons/Icons';
 import { ActiveView, Theme } from './types';
 import { cn } from './lib/utils';
-import { sidebarSections } from './components/Sidebar'; // Import for title lookup
 import { OnboardingTutorial } from './components/OnboardingTutorial';
 
 // --- Lazy-loaded Components ---
@@ -35,6 +34,8 @@ const SirahNabawiyahView = lazy(() => import('./components/SirahNabawiyahView').
 const HijriCalendarView = lazy(() => import('./components/HijriCalendarView').then(module => ({ default: module.HijriCalendarView })));
 const ArtikelIslamiView = lazy(() => import('./components/ArtikelIslamiView').then(module => ({ default: module.ArtikelIslamiView })));
 const HalalCheckerView = lazy(() => import('./components/HalalCheckerView').then(module => ({ default: module.HalalCheckerView })));
+const ImageEditor = lazy(() => import('./components/ImageEditor').then(module => ({ default: module.ImageEditor })));
+const DailyQuoteView = lazy(() => import('./components/DailyQuoteView'));
 const PlaceholderView = lazy(() => import('./components/PlaceholderView').then(module => ({ default: module.PlaceholderView })));
 
 const LoadingSpinner = () => (
@@ -48,6 +49,7 @@ function App() {
   const [viewParams, setViewParams] = useState<any | null>(null);
   const [theme, setTheme] = useState<Theme>(Theme.LIGHT);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     // Check for onboarding completion
@@ -82,6 +84,7 @@ function App() {
   const handleSetActiveView = (view: ActiveView, params?: any) => {
     setActiveView(view);
     setViewParams(params || null);
+    setIsSidebarOpen(false); // Close sidebar on navigation
   };
   
   const handleAutoplayHandled = () => {
@@ -144,41 +147,43 @@ function App() {
         return <ArtikelIslamiView />;
       case ActiveView.HALAL_CHECKER:
         return <HalalCheckerView />;
+      case ActiveView.IMAGE_EDITOR:
+        return <ImageEditor />;
+      case ActiveView.DAILY_QUOTE:
+        return <DailyQuoteView />;
       default:
-        return <PlaceholderView title={activeView} description="This feature is coming soon!" />;
+        return <PlaceholderView title={activeView as string} description="This feature is coming soon!" />;
     }
-  };
-
-  const getCurrentViewTitle = () => {
-    for (const section of sidebarSections) {
-      const item = section.items.find(item => item.view === activeView);
-      if (item) return item.label;
-    }
-    return 'QuranPulse'; // Fallback title
   };
 
   return (
-    <div className={cn("flex h-screen bg-background-light dark:bg-background-dark text-foreground-light dark:text-foreground-dark font-sans", theme)}>
+    <div className={cn("flex h-screen bg-background text-foreground font-sans", theme)}>
       {showOnboarding && <OnboardingTutorial onClose={handleCloseOnboarding} />}
       <Sidebar 
         activeView={activeView} 
         setActiveView={handleSetActiveView}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
       />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="flex-shrink-0 h-16 bg-card-light dark:bg-card-dark border-b border-border-light dark:border-border-dark flex items-center justify-between px-4 md:px-6">
-          <div className="md:hidden">
-            <h1 className="text-xl font-bold text-primary">{getCurrentViewTitle()}</h1>
-          </div>
-          <div className="flex-1">
-             <GlobalAudioPlayer />
-          </div>
-          <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
-// FIX: Replaced string literal 'light' with Theme.LIGHT enum member for correct type comparison.
-            {theme === Theme.LIGHT ? <MoonIcon /> : <SunIcon />}
-          </button>
+        <header className="flex-shrink-0 h-16 bg-card border-b border-border flex items-center justify-between px-4 md:px-6">
+            <div className="w-10">
+                <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
+                    <MenuIcon />
+                </button>
+            </div>
+            
+            <div className="flex-1">
+                <GlobalAudioPlayer />
+            </div>
+
+            <div className="w-10 flex justify-end">
+                <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
+                    {theme === Theme.LIGHT ? <MoonIcon /> : <SunIcon />}
+                </button>
+            </div>
         </header>
         
-        {/* Add padding-bottom to prevent content from being hidden by the bottom nav */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
           <Suspense fallback={<LoadingSpinner />}>
             {renderActiveView()}
@@ -186,7 +191,6 @@ function App() {
         </main>
       </div>
       
-      {/* Mobile-only Bottom Navigation */}
       <BottomNavBar
         activeView={activeView}
         setActiveView={handleSetActiveView}

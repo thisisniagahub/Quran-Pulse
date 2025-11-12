@@ -4,77 +4,76 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QuranPulse</title>
+
+    <!-- Import Map for ES Modules -->
+    <script type="importmap">
+    {
+      "imports": {
+        "express": "https://aistudiocdn.com/express@^5.1.0",
+        "dotenv": "https://aistudiocdn.com/dotenv@^17.2.3",
+        "cors": "https://aistudiocdn.com/cors@^2.8.5",
+        "express-rate-limit": "https://aistudiocdn.com/express-rate-limit@^8.2.0",
+        "react/": "https://aistudiocdn.com/react@^19.2.0/",
+        "react": "https://aistudiocdn.com/react@^19.2.0",
+        "react-dom/client": "https://aistudiocdn.com/react-dom@^19.2.0/client",
+        "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+        "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0"
+      }
+    }
+    </script>
     
-    <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#059669">
-    <meta name="description" content="A sophisticated and trustworthy Al-Quran SuperApp for Malaysia">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="QuranPulse">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    
-    <!-- PWA Icons -->
-    <link rel="manifest" href="/manifest.json">
-    <link rel="apple-touch-icon" href="/logo192.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="/logo192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="/logo512.png">
-    
-    <!-- Optimized Font Loading -->
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- App Fonts & Styles -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Amiri+Quran:wght@400;700&family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran:wght@400;700&family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" media="print" onload="this.media='all';this.onload=null;">
-    <noscript>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran:wght@400;700&family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap">
-    </noscript>
-    
-    <!-- Islamic Theme Resources -->
-    <link rel="stylesheet" href="/utils/islamicPatterns.css">
-    <link rel="stylesheet" href="/utils/islamicTypography.css">
-    
-    <style>
-        /* Optimized font usage with fallbacks */
-        .font-arabic { 
-            font-family: 'Amiri Quran', 'Noto Naskh Arabic', 'Amiri', serif; 
-            font-display: swap;
+    <link href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style type="text/tailwindcss">
+        @layer base {
+            :root {
+                --background: 50 30% 93%; /* #f4f3ed - Warm Ivory */
+                --foreground: 163 29% 17%; /* #1e3932 - Deep Dark Green */
+                --card: 50 30% 98%; /* #fcfcf9 - Brighter Ivory */
+                --border: 163 20% 80%; /* #c4d1ce - Light Greenish Gray */
+                --primary: 163 29% 17%; /* #1e3932 - Deep Dark Green */
+                --primary-foreground: 50 30% 98%; /* #fcfcf9 - Brighter Ivory */
+                --accent: 163 25% 35%; /* #3b6257 - Muted Green */
+                --destructive: 0 84.2% 60.2%;
+            }
+
+            .dark {
+                --background: 163 29% 10%; /* #11211c - Very Dark Green */
+                --foreground: 50 30% 90%; /* #ecebe4 - Soft Ivory */
+                --card: 163 29% 13%; /* #182e28 - Lighter Dark Green */
+                --border: 163 25% 18%; /* #213d37 - Dark Green-Gray Border */
+                --primary: 50 30% 90%; /* #ecebe4 - Soft Ivory */
+                --primary-foreground: 163 29% 10%; /* #11211c - Very Dark Green */
+                --accent: 163 30% 45%; /* #508c7e - Muted Teal */
+                --destructive: 0 62.8% 30.6%;
+            }
+
+            body {
+                background-image: url('./public/images/islamic-pattern.png');
+                background-repeat: repeat;
+                background-size: 300px;
+                background-attachment: fixed;
+                transition: background-color 0.3s ease;
+            }
+
+            html:not(.dark) body {
+                background-color: hsl(var(--background));
+            }
+
+            html.dark body {
+                background-blend-mode: overlay;
+                background-color: hsla(var(--background), 0.95);
+            }
+
+            .font-arabic { font-family: 'Amiri Quran', serif; }
+            .font-sans { font-family: 'Inter', sans-serif; }
         }
-        .font-sans { 
-            font-family: 'Inter', 'Readex Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-            font-display: swap;
-        }
-        .font-serif { 
-            font-family: 'Inter', 'Georgia', 'Times New Roman', serif; 
-            font-display: swap;
-        }
-        
-        /* Font loading indicators */
-        .font-loading {
-            opacity: 0;
-            transition: opacity 0.3s ease-in-out;
-        }
-        
-        .font-loaded {
-            opacity: 1;
-        }
-        
-        /* Islamic-themed text rendering */
-        .text-arabic {
-            direction: rtl;
-            text-align: right;
-            font-feature-settings: 'init' 1, 'medi' 1, 'fina' 1;
-        }
-        
-        .text-translation {
-            direction: ltr;
-            text-align: left;
-        }
-        
-        /* Golden ratio typography scale */
-        .text-scale-1 { font-size: 1rem; }
-        .text-scale-2 { font-size: 1.25rem; }
-        .text-scale-3 { font-size: 1.563rem; }
-        .text-scale-4 { font-size: 1.953rem; }
-        .text-scale-5 { font-size: 2.441rem; }
-        .text-scale-6 { font-size: 3.052rem; }
     </style>
 
     <!-- Tailwind Config -->
@@ -84,52 +83,25 @@
             theme: {
                 extend: {
                     colors: {
-                        background: {
-                            DEFAULT: 'hsl(var(--background))',
-                            light: 'hsl(var(--background))',
-                            dark: 'hsl(var(--background))'
-                        },
-                        foreground: {
-                            DEFAULT: 'hsl(var(--foreground))',
-                            light: 'hsl(var(--foreground))',
-                            dark: 'hsl(var(--foreground))'
-                        },
-                        card: {
-                            DEFAULT: 'hsl(var(--card))',
-                            foreground: 'hsl(var(--foreground))'
-                        },
+                        background: 'hsl(var(--background))',
+                        foreground: 'hsl(var(--foreground))',
+                        card: 'hsl(var(--card))',
                         border: 'hsl(var(--border))',
                         primary: {
                             DEFAULT: 'hsl(var(--primary))',
                             foreground: 'hsl(var(--primary-foreground))'
                         },
-                        secondary: {
-                            DEFAULT: 'hsl(var(--secondary))',
-                            foreground: 'hsl(var(--secondary-foreground))'
-                        },
                         accent: {
                             DEFAULT: 'hsl(var(--accent))',
-                            foreground: 'hsl(var(--accent-foreground))'
                         },
-                        destructive: {
-                            DEFAULT: 'hsl(var(--destructive))',
-                            foreground: 'hsl(var(--destructive-foreground))'
-                        },
-                    },
-                    fontFamily: {
-                        arabic: ['Amiri Quran', 'Noto Naskh Arabic', 'Arabic Transparent', 'serif'],
-                        sans: ['Inter', 'Readex Pro', 'system-ui', 'sans-serif'],
-                        serif: ['Inter', 'Georgia', 'serif'],
+                        destructive: 'hsl(var(--destructive))',
                     }
                 }
             }
         }
     </script>
-    
-    <!-- Preload critical resources -->
-    <link rel="preload" href="/sw.js" as="script">
 </head>
-<body class="bg-background text-foreground islamic-subtle-geometry font-sans">
+<body class="bg-background text-foreground">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
 </body>

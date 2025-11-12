@@ -21,3 +21,6 @@ export const PlaceholderView: React.FC<PlaceholderViewProps> = ({ title, descrip
     </div>
   );
 };
+
+// FIX: Add a default export to solve lazy loading type inference issues.
+export default PlaceholderView;

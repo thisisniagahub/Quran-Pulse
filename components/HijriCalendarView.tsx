@@ -2,30 +2,36 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon, CalendarDaysIcon } from './icons/Icons';
 import { Card, CardContent } from './ui/Card';
 
-interface HijriDate {
+// Correct types for the Aladhan API response
+interface ApiHijriDate {
   date: string;
   day: string;
-  weekday: { en: string, ar: string };
-  month: { number: number, en: string, ar: string };
+  weekday: { en: string; ar: string };
+  month: { number: number; en: string; ar: string };
   year: string;
 }
 
-interface GregorianDate {
+interface ApiGregorianDate {
   date: string;
   day: string;
   weekday: { en: string };
-  month: { number: number, en: string };
+  month: { number: number; en: string };
   year: string;
 }
 
-interface CalendarDay {
-  gregorian: GregorianDate;
-  hijri: HijriDate;
+interface ApiDateInfo {
+    gregorian: ApiGregorianDate;
+    hijri: ApiHijriDate;
+}
+
+interface ApiCalendarDay {
+  date: ApiDateInfo;
+  // timings and meta properties are ignored as they are not used.
 }
 
 export const HijriCalendarView: React.FC = () => {
   const [date, setDate] = useState(new Date());
-  const [monthData, setMonthData] = useState<CalendarDay[]>([]);
+  const [monthData, setMonthData] = useState<ApiCalendarDay[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -55,12 +61,12 @@ export const HijriCalendarView: React.FC = () => {
     });
   };
 
-  const firstDayOfMonth = monthData.length > 0 ? new Date(`${monthData[0].gregorian.date.split('-').reverse().join('-')}T00:00:00`).getDay() : 0;
+  const firstDayOfMonth = monthData.length > 0 ? new Date(`${monthData[0].date.gregorian.date.split('-').reverse().join('-')}T00:00:00`).getDay() : 0;
   
   const getHijriMonthName = () => {
       if (monthData.length === 0) return '';
-      const hijriMonth = monthData[Math.floor(monthData.length / 2)].hijri.month.en;
-      const hijriYear = monthData[Math.floor(monthData.length / 2)].hijri.year;
+      const hijriMonth = monthData[Math.floor(monthData.length / 2)].date.hijri.month.en;
+      const hijriYear = monthData[Math.floor(monthData.length / 2)].date.hijri.year;
       return `${hijriMonth} ${hijriYear}`;
   }
 
@@ -95,11 +101,11 @@ export const HijriCalendarView: React.FC = () => {
             <div className="grid grid-cols-7 gap-1">
               {Array.from({ length: firstDayOfMonth }).map((_, i) => <div key={`empty-${i}`} className="border border-transparent"></div>)}
               {monthData.map(day => {
-                const isToday = new Date().toDateString() === new Date(`${day.gregorian.date.split('-').reverse().join('-')}T00:00:00`).toDateString();
+                const isToday = new Date().toDateString() === new Date(`${day.date.gregorian.date.split('-').reverse().join('-')}T00:00:00`).toDateString();
                 return (
-                  <div key={day.gregorian.date} className={`aspect-square border border-border-light dark:border-border-dark rounded-md p-2 flex flex-col justify-between ${isToday ? 'bg-primary text-white' : ''}`}>
-                    <span className={`font-bold ${isToday ? 'text-white' : 'text-primary'}`}>{day.hijri.day}</span>
-                    <span className={`text-sm self-end ${isToday ? 'text-white/80' : 'text-foreground-light/70'}`}>{day.gregorian.day}</span>
+                  <div key={day.date.gregorian.date} className={`aspect-square border border-border-light dark:border-border-dark rounded-md p-2 flex flex-col justify-between ${isToday ? 'bg-primary text-white' : ''}`}>
+                    <span className={`font-bold ${isToday ? 'text-white' : 'text-primary'}`}>{day.date.hijri.day}</span>
+                    <span className={`text-sm self-end ${isToday ? 'text-white/80' : 'text-foreground-light/70'}`}>{day.date.gregorian.day}</span>
                   </div>
                 );
               })}

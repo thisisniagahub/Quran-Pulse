@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { GoogleGenAI, LiveServerMessage, Modality, Blob } from '@google/genai';
-import { ChatBubbleIcon, SparklesIcon, StopCircleIcon } from './icons/Icons';
-import { encode, decode, decodeAudioData, createBlob } from '../utils/audio';
+import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
+import { ChatBubbleIcon, StopCircleIcon } from './icons/Icons';
+import { decode, decodeAudioData, createBlob } from '../utils/audio';
 import { AgentSelector } from './ui/AgentSelector';
 import { AGENT_DEFINITIONS } from '../lib/agents';
 import type { Agent } from '../lib/agents';
@@ -26,6 +26,9 @@ export const LiveConversation: React.FC = () => {
     const nextStartTimeRef = useRef<number>(0);
     const audioSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
     const transcriptsEndRef = useRef<HTMLDivElement>(null);
+    
+    const currentInputTranscriptionRef = useRef('');
+    const currentOutputTranscriptionRef = useRef('');
 
     useEffect(() => {
         transcriptsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -48,6 +51,8 @@ export const LiveConversation: React.FC = () => {
         setStatus('connecting');
         setTranscripts([]);
         setError(null);
+        currentInputTranscriptionRef.current = '';
+        currentOutputTranscriptionRef.current = '';
 
         try {
             if (!process.env.API_KEY) throw new Error("API Key not found");
@@ -87,7 +92,7 @@ export const LiveConversation: React.FC = () => {
                         scriptProcessor.connect(audioContextRef.current!.destination);
                         setStatus('listening');
                     },
-                    onmessage: async (message: LiveServerMessage) => {
+                    onmessage: (message: LiveServerMessage) => {
                         handleServerMessage(message);
                     },
                     onerror: (e: ErrorEvent) => {
@@ -98,7 +103,9 @@ export const LiveConversation: React.FC = () => {
                     },
                     onclose: () => {
                         cleanupAudio();
-                        setStatus('idle');
+                         if (status !== 'error') {
+                           setStatus('idle');
+                        }
                     },
                 }
             });
@@ -113,36 +120,38 @@ export const LiveConversation: React.FC = () => {
     
     const handleServerMessage = async (message: LiveServerMessage) => {
         if (message.serverContent?.inputTranscription?.text) {
-             setTranscripts(prev => {
-                const last = prev[prev.length - 1];
-                if (last?.sender === 'user') {
-                    last.text += message.serverContent.inputTranscription.text;
-                    return [...prev];
-                }
-                return [...prev, { sender: 'user', text: message.serverContent.inputTranscription.text }];
-            });
+             currentInputTranscriptionRef.current += message.serverContent.inputTranscription.text;
         }
         if (message.serverContent?.outputTranscription?.text) {
-            const textChunk = message.serverContent.outputTranscription.text;
-            setTranscripts(prev => {
-                const last = prev[prev.length - 1];
-                if (last?.sender === 'ai') {
-                    last.text += textChunk;
-                    return [...prev];
-                }
-                return [...prev, { sender: 'ai', text: textChunk }];
-            });
+            currentOutputTranscriptionRef.current += message.serverContent.outputTranscription.text;
+        }
+
+        if (message.serverContent?.turnComplete) {
+            const finalInput = currentInputTranscriptionRef.current;
+            const finalOutput = currentOutputTranscriptionRef.current;
+
+            if (finalInput) {
+                 setTranscripts(prev => [...prev, { sender: 'user', text: finalInput.trim() }]);
+            }
+            if (finalOutput) {
+                 setTranscripts(prev => [...prev, { sender: 'ai', text: finalOutput.trim() }]);
+            }
+            currentInputTranscriptionRef.current = '';
+            currentOutputTranscriptionRef.current = '';
         }
 
         const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
         if (base64Audio) {
             setStatus('speaking');
-            const audioBuffer = await decodeAudioData(decode(base64Audio), outputAudioContextRef.current!, 24000, 1);
-            const source = outputAudioContextRef.current!.createBufferSource();
+            const audioCtx = outputAudioContextRef.current;
+            if (!audioCtx) return;
+
+            const audioBuffer = await decodeAudioData(decode(base64Audio), audioCtx, 24000, 1);
+            const source = audioCtx.createBufferSource();
             source.buffer = audioBuffer;
-            source.connect(outputAudioContextRef.current!.destination);
+            source.connect(audioCtx.destination);
             
-            const currentTime = outputAudioContextRef.current!.currentTime;
+            const currentTime = audioCtx.currentTime;
             nextStartTimeRef.current = Math.max(nextStartTimeRef.current, currentTime);
             
             source.start(nextStartTimeRef.current);
@@ -151,7 +160,7 @@ export const LiveConversation: React.FC = () => {
             audioSourcesRef.current.add(source);
             source.onended = () => {
                 audioSourcesRef.current.delete(source);
-                if (audioSourcesRef.current.size === 0) {
+                if (audioSourcesRef.current.size === 0 && status === 'speaking') {
                      setStatus('listening');
                 }
             };
@@ -161,6 +170,8 @@ export const LiveConversation: React.FC = () => {
     const stopSession = () => {
         sessionPromiseRef.current?.then(session => session.close());
         sessionPromiseRef.current = null;
+        cleanupAudio();
+        setStatus('idle');
     };
 
     useEffect(() => {
@@ -192,7 +203,7 @@ export const LiveConversation: React.FC = () => {
                         <AgentSelector
                             agents={Object.values(agentSet)}
                             selectedAgentId={selectedAgentId}
-                            onSelectAgent={(id) => { if(status === 'idle') setSelectedAgentId(id)}}
+                            onSelectAgent={(id) => { if(status === 'idle') setSelectedAgentId(id as AgentId)}}
                             title="Pilih Rakan Sembang"
                         />
                      )}
@@ -218,7 +229,7 @@ export const LiveConversation: React.FC = () => {
                         onClick={status === 'idle' || status === 'error' ? startSession : stopSession}
                         disabled={status === 'connecting'}
                         className={`w-24 h-24 rounded-full mx-auto flex items-center justify-center transition-all duration-300 text-white
-                            ${status !== 'idle' && status !== 'error' ? 'bg-primary hover:bg-primary/90 animate-pulse' : 'bg-accent hover:bg-accent/90'}
+                            ${status !== 'idle' && status !== 'error' ? 'bg-red-500 hover:bg-red-600 animate-pulse' : 'bg-primary hover:bg-primary/90'}
                             disabled:bg-foreground-light/50 disabled:cursor-not-allowed`}
                     >
                        {status !== 'idle' && status !== 'error' ? <StopCircleIcon className="w-10 h-10" /> : <ChatBubbleIcon className="w-10 h-10" />}

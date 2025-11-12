@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-// FIX: The error "File 'file:///types.ts' is not a module" is resolved by creating the correct content for types.ts. The import path is correct.
 import type { Surah } from '../types';
 import { useAudioPlayer } from '../context/AudioContext';
 
@@ -20,39 +19,10 @@ export const useAutoplay = (
 ) => {
     const [isAutoplayQueueActive, setIsAutoplayQueueActive] = useState(false);
     const [currentAutoplayIndex, setCurrentAutoplayIndex] = useState<number | null>(null);
-    const { playTrack, stop, track, isPlaying, duration, currentTime, buffering } = useAudioPlayer();
-    const autoplayHandledRef = useRef(false);
-    const preloadQueueRef = useRef<string[]>([]); // Queue of upcoming tracks to preload
+    const { playTrack, stop, track, isPlaying, duration, currentTime } = useAudioPlayer();
 
-    // Preload upcoming audio tracks to improve performance
-    const preloadNextTracks = useCallback((startIndex: number, surahData: Surah) => {
-        const maxPreload = 5; // Preload up to 5 next tracks
-        const newQueue: string[] = [];
-        
-        for (let i = startIndex; i < Math.min(startIndex + maxPreload, surahData.ayahs.length); i++) {
-            const ayahToPreload = surahData.ayahs[i];
-            if (ayahToPreload) {
-                const surahNumPadded = String(surahData.number).padStart(3, '0');
-                const ayahNumPadded = String(ayahToPreload.numberInSurah).padStart(3, '0');
-                const audioSrc = `https://everyayah.com/data/Alafasy_128kbps/${surahNumPadded}${ayahNumPadded}.mp3`;
-                newQueue.push(audioSrc);
-            }
-        }
-        
-        preloadQueueRef.current = newQueue;
-    }, []);
-
-    const start = useCallback(() => {
-        if (!surah || surah.ayahs.length === 0) return;
-        stop(); // Stop any current track before starting a new queue
-        setIsAutoplayQueueActive(true);
-        const startIndex = highlightAyah ? surah.ayahs.findIndex(a => a.numberInSurah === highlightAyah) : 0;
-        const actualStartIndex = startIndex !== -1 ? startIndex : 0;
-        setCurrentAutoplayIndex(actualStartIndex);
-        
-        // Preload upcoming tracks
-        preloadNextTracks(actualStartIndex, surah);
-    }, [surah, highlightAyah, stop, preloadNextTracks]);
+    const autoplayTriggeredRef = useRef(false);
+    const hasAdvancedOnEndRef = useRef(false); // Ref lock to prevent race conditions on track end
 
     const stopAutoplay = useCallback(() => {
       setIsAutoplayQueueActive(false);
@@ -60,91 +30,88 @@ export const useAutoplay = (
       stop();
     }, [stop]);
 
-    // Effect to trigger the start of autoplay when the prop is received.
+    const start = useCallback(() => {
+        if (!surah || surah.ayahs.length === 0) return;
+        stop(); // Stop any current track before starting a new queue
+        setIsAutoplayQueueActive(true);
+        const startIndex = highlightAyah ? surah.ayahs.findIndex(a => a.numberInSurah === highlightAyah) : 0;
+        setCurrentAutoplayIndex(startIndex !== -1 ? startIndex : 0);
+    }, [surah, highlightAyah, stop]);
+    
+    const nextAyah = useCallback(() => {
+        if (surah && currentAutoplayIndex !== null && currentAutoplayIndex < surah.ayahs.length - 1) {
+            stop();
+            setCurrentAutoplayIndex(prev => prev! + 1);
+        }
+    }, [surah, currentAutoplayIndex, stop]);
+
+    const prevAyah = useCallback(() => {
+        if (currentAutoplayIndex !== null && currentAutoplayIndex > 0) {
+            stop();
+            setCurrentAutoplayIndex(prev => prev! - 1);
+        }
+    }, [currentAutoplayIndex, stop]);
+
+    // Effect to handle the initial trigger from props
     useEffect(() => {
-        if (startAutoplay && surah && !autoplayHandledRef.current) {
+        if (startAutoplay && surah && !autoplayTriggeredRef.current) {
             start();
-            autoplayHandledRef.current = true;
+            autoplayTriggeredRef.current = true;
             onAutoplayHandled?.();
         }
     }, [startAutoplay, surah, onAutoplayHandled, start]);
 
-    // Effect to manage the progression of the autoplay queue.
+    // Effect 1: Responsible for PLAYING the track when the index changes.
     useEffect(() => {
-        if (!isAutoplayQueueActive || currentAutoplayIndex === null || !surah) return;
+        if (!isAutoplayQueueActive || currentAutoplayIndex === null || !surah) {
+            return;
+        }
 
-        // Check if track is finished (consider buffering state to avoid false positives)
-        const isTrackFinished = !isPlaying && !buffering && duration > 0 && Math.abs(currentTime - duration) < 0.2;
+        const ayahToPlay = surah.ayahs[currentAutoplayIndex];
+        if (!ayahToPlay) {
+            stopAutoplay();
+            return;
+        }
+
+        const surahNumPadded = String(surah.number).padStart(3, '0');
+        const ayahNumPadded = String(ayahToPlay.numberInSurah).padStart(3, '0');
+        const audioSrc = `https://everyayah.com/data/Alafasy_128kbps/${surahNumPadded}${ayahNumPadded}.mp3`;
         
-        // Function to play the current ayah in the queue
-        const playCurrent = () => {
-            const ayahToPlay = surah.ayahs[currentAutoplayIndex];
-            if (!ayahToPlay) {
-                stopAutoplay();
-                return;
-            }
-            const surahNumPadded = String(surah.number).padStart(3, '0');
-            const ayahNumPadded = String(ayahToPlay.numberInSurah).padStart(3, '0');
+        // Only play if the track is different. Crucially, reset the 'ended' flag for the new track.
+        if (track?.src !== audioSrc) {
+            hasAdvancedOnEndRef.current = false;
             playTrack({
-                src: `https://everyayah.com/data/Alafasy_128kbps/${surahNumPadded}${ayahNumPadded}.mp3`,
+                src: audioSrc,
                 title: `S. ${surah.englishName}, Ayat ${ayahToPlay.numberInSurah}`,
                 type: 'mp3'
             });
-            
-            // Preload next tracks after current track is set
-            setTimeout(() => {
-                if (currentAutoplayIndex + 1 < surah.ayahs.length) {
-                    preloadNextTracks(currentAutoplayIndex + 1, surah);
-                }
-            }, 100);
-        };
+        }
+    }, [isAutoplayQueueActive, currentAutoplayIndex, surah, playTrack, stopAutoplay, track?.src]);
 
-        // If the track is null, it's the start of the queue.
-        if (track === null) {
-            playCurrent();
-        } 
-        // If a track just finished, move to the next one.
-        else if (isTrackFinished) {
-            if (currentAutoplayIndex < surah.ayahs.length - 1) {
-                setCurrentAutoplayIndex(prev => {
-                    const nextIndex = prev! + 1;
-                    // Preload next tracks when moving to next ayah
-                    preloadNextTracks(nextIndex, surah);
-                    return nextIndex;
-                });
+    // Effect 2: Responsible for ADVANCING to the next index when a track finishes.
+    useEffect(() => {
+        if (!isAutoplayQueueActive || !surah) return;
+        
+        const isTrackFinished = !isPlaying && duration > 0 && Math.abs(currentTime - duration) < 0.2;
+
+        if (isTrackFinished && !hasAdvancedOnEndRef.current) {
+            hasAdvancedOnEndRef.current = true; // Engage lock to prevent this from running again for the same finished track
+
+            const nextIndex = (currentAutoplayIndex ?? -1) + 1;
+            if (nextIndex < surah.ayahs.length) {
+                setCurrentAutoplayIndex(nextIndex); // This state change will trigger Effect 1
             } else {
-                // End of the queue
-                stopAutoplay();
+                stopAutoplay(); // End of the surah
             }
         }
-    }, [isAutoplayQueueActive, currentAutoplayIndex, surah, track, isPlaying, buffering, duration, currentTime, playTrack, stopAutoplay, preloadNextTracks]);
-    
-    // Effect to play the next track when the index changes
-    useEffect(() => {
-        if (isAutoplayQueueActive && currentAutoplayIndex !== null && isPlaying === false && !buffering) {
-             const ayahToPlay = surah?.ayahs[currentAutoplayIndex];
-             if (!ayahToPlay) return;
-             const surahNumPadded = String(surah.number).padStart(3, '0');
-             const ayahNumPadded = String(ayahToPlay.numberInSurah).padStart(3, '0');
-             const audioSrc = `https://everyayah.com/data/Alafasy_128kbps/${surahNumPadded}${ayahNumPadded}.mp3`;
-             
-             // Play only if the index has advanced and the correct track isn't already loaded/finished
-             if (track?.src !== audioSrc) {
-                 playTrack({
-                    src: audioSrc,
-                    title: `S. ${surah!.englishName}, Ayat ${ayahToPlay.numberInSurah}`,
-                    type: 'mp3'
-                });
-             }
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    },[currentAutoplayIndex, buffering]);
-
+    }, [isAutoplayQueueActive, isPlaying, duration, currentTime, surah, currentAutoplayIndex, stopAutoplay]);
 
     return { 
         start, 
         stop: stopAutoplay, 
         isPlaying: isAutoplayQueueActive,
         currentlyPlayingAyahIndex: currentAutoplayIndex,
+        nextAyah,
+        prevAyah,
     };
 };

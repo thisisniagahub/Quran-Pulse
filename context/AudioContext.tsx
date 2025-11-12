@@ -9,33 +9,24 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [buffering, setBuffering] = useState(false);
+  const [playbackRate, setPlaybackRateState] = useState(1);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioBuffer = useRef<Map<string, HTMLAudioElement>>(new Map()); // Cache for frequently used audio
-
-  // Clean up audio element
-  const cleanupAudio = useCallback((audioElement: HTMLAudioElement) => {
-    if (audioElement) {
-      audioElement.pause();
-      audioElement.src = '';
-      audioElement.load();
-      URL.revokeObjectURL(audioElement.src); // Clean up object URLs for base64 data
-    }
-  }, []);
 
   // Stop and clean up the audio element
   const stop = useCallback(() => {
     if (audioRef.current) {
-      cleanupAudio(audioRef.current);
+      audioRef.current.pause();
+      // Setting src to empty string is a common way to force unload
+      audioRef.current.src = ''; 
+      audioRef.current.load();
       audioRef.current = null;
     }
     setTrack(null);
     setIsPlaying(false);
     setCurrentTime(0);
     setDuration(0);
-    setBuffering(false);
-  }, [cleanupAudio]);
+  }, []);
 
   // Effect to manage event listeners for the audio element.
   // This is the source of truth for the player's state.
@@ -43,18 +34,12 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const audio = audioRef.current;
     if (!audio) return;
 
-    const onPlay = () => {
-      setIsPlaying(true);
-      setBuffering(false);
-    };
+    const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);
     const onTimeUpdate = () => setCurrentTime(audio.currentTime);
     const onLoadedMetadata = () => setDuration(audio.duration);
-    const onWaiting = () => setBuffering(true);
-    const onPlaying = () => setBuffering(false);
     const onEnded = () => {
       setIsPlaying(false);
-      setBuffering(false);
       // Ensure the slider visually completes
       if (audio.duration) {
         setCurrentTime(audio.duration);
@@ -63,55 +48,30 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const onError = (e: Event) => {
       console.error('Audio Player Error:', e);
       setError('Ralat memuatkan audio. Sila cuba lagi.');
-      setIsPlaying(false);
-      setBuffering(false);
+      setIsPlaying(false); // Ensure isPlaying is false on error
     };
-    const onCanPlay = () => setBuffering(false);
 
     audio.addEventListener('play', onPlay);
     audio.addEventListener('pause', onPause);
     audio.addEventListener('timeupdate', onTimeUpdate);
     audio.addEventListener('loadedmetadata', onLoadedMetadata);
-    audio.addEventListener('waiting', onWaiting);
-    audio.addEventListener('playing', onPlaying);
     audio.addEventListener('ended', onEnded);
     audio.addEventListener('error', onError);
-    audio.addEventListener('canplay', onCanPlay);
 
     return () => {
       audio.removeEventListener('play', onPlay);
       audio.removeEventListener('pause', onPause);
       audio.removeEventListener('timeupdate', onTimeUpdate);
       audio.removeEventListener('loadedmetadata', onLoadedMetadata);
-      audio.removeEventListener('waiting', onWaiting);
-      audio.removeEventListener('playing', onPlaying);
       audio.removeEventListener('ended', onEnded);
       audio.removeEventListener('error', onError);
-      audio.removeEventListener('canplay', onCanPlay);
     };
   }, [track]); // Re-attach listeners when the track (and thus audio element) changes
 
-  // Preload audio to improve performance
-  const preloadAudio = useCallback((src: string, type: string): HTMLAudioElement | null => {
-    try {
-      if (audioBuffer.current.has(src)) {
-        return audioBuffer.current.get(src) || null;
-      }
-
-      const audio = document.createElement('audio');
-      if (type === 'wav_base64') {
-        audio.src = `data:audio/wav;base64,${src}`;
-      } else {
-        audio.src = src;
-      }
-      
-      // Preload metadata only to save bandwidth
-      audio.preload = 'metadata';
-      audioBuffer.current.set(src, audio);
-      return audio;
-    } catch (err) {
-      console.error('Error preloading audio:', err);
-      return null;
+  const setPlaybackRate = useCallback((rate: number) => {
+    setPlaybackRateState(rate);
+    if (audioRef.current) {
+        audioRef.current.playbackRate = rate;
     }
   }, []);
 
@@ -133,81 +93,66 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     // Clean up previous track if any
     if (audioRef.current) {
-      cleanupAudio(audioRef.current);
+      audioRef.current.pause();
     }
     
     setError(null);
-    setBuffering(true);
     setTrack(newTrack);
     setCurrentTime(0); // Reset time for new track
 
-    // Try to use preloaded audio first
-    let audio = audioBuffer.current.get(newTrack.src) || null;
-    
-    if (!audio) {
-      audio = new Audio();
-      if (newTrack.type === 'wav_base64') {
+    const audio = new Audio();
+    if (newTrack.type === 'wav_base64') {
         audio.src = `data:audio/wav;base64,${newTrack.src}`;
-      } else {
-        audio.src = newTrack.src;
-      }
     } else {
-      // Reset the preloaded audio element
-      if (newTrack.type === 'wav_base64') {
-        audio.src = `data:audio/wav;base64,${newTrack.src}`;
-      } else {
         audio.src = newTrack.src;
-      }
     }
-    
+    audio.playbackRate = playbackRate;
     audioRef.current = audio;
 
     try {
-      await audio.play();
+        await audio.play();
     } catch (err: any) {
-      if (err.name === 'AbortError') {
-        console.log('Playback aborted by new request.');
-      } else {
-        console.error("Error playing track:", err);
-        setError("Gagal memainkan audio.");
-      }
+        if (err.name === 'AbortError') {
+            console.log('Playback aborted by new request.');
+        } else {
+            console.error("Error playing track:", err);
+            setError("Gagal memainkan audio.");
+        }
     }
-  }, [track, error, cleanupAudio]);
-
+  }, [track, error, playbackRate]);
+  
   const togglePlayPause = useCallback(async () => {
     const audio = audioRef.current;
     if (!audio || error) return;
     
     try {
-      if (audio.paused) {
-        setBuffering(true);
-        await audio.play();
-      } else {
-        audio.pause();
-      }
+        if (audio.paused) {
+            await audio.play();
+        } else {
+            audio.pause();
+        }
     } catch (err: any) {
-      if (err.name === 'AbortError') {
-        console.log('Play/Pause action was interrupted by another action. This is normal.');
-      } else {
-        console.error("Toggle play/pause failed", err);
-        setError("Gagal menukar status main/jeda audio.");
-      }
+        if (err.name === 'AbortError') {
+            console.log('Play/Pause action was interrupted by another action. This is normal.');
+        } else {
+            console.error("Toggle play/pause failed", err);
+            setError("Gagal menukar status main/jeda audio.");
+        }
     }
   }, [error]);
-
+  
   const seek = useCallback((time: number) => {
     if (audioRef.current && !error) {
       audioRef.current.currentTime = time;
       setCurrentTime(time);
     }
   }, [error]);
-
+  
   const retry = useCallback(() => {
     if (track) {
         const trackToRetry = { ...track };
         // Don't call stop() as it clears the track state
         setError(null);
-        setBuffering(true);
         // Defer playTrack to allow state to update
         setTimeout(() => playTrack(trackToRetry), 50);
     }
@@ -215,46 +160,17 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const dismissError = useCallback(() => {
       setError(null);
-      setBuffering(false);
       stop(); // Stop completely and clear track
   }, [stop]);
-
-  // Cleanup audio buffer periodically
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // Keep only the most recently used 10 audio elements
-      if (audioBuffer.current.size > 10) {
-        const entries = Array.from(audioBuffer.current.entries());
-        const sorted = entries.sort((a, b) => {
-          const audioA = a[1];
-          const audioB = b[1];
-          // Sort by last played time or some other metric
-          return 0; // Simplified - in a real app, you'd track usage
-        });
-        
-        // Remove oldest entries
-        for (let i = 0; i < sorted.length - 10; i++) {
-          const [src, audio] = sorted[i];
-          cleanupAudio(audio);
-          audioBuffer.current.delete(src);
-        }
-      }
-    }, 30000); // Clean up every 30 seconds
-
-    return () => clearInterval(interval);
-  }, [cleanupAudio]);
 
   useEffect(() => {
     return () => {
         if (audioRef.current) {
-            cleanupAudio(audioRef.current);
+            audioRef.current.pause();
             audioRef.current = null;
         }
-        // Clean up all buffered audio
-        audioBuffer.current.forEach(audio => cleanupAudio(audio));
-        audioBuffer.current.clear();
     };
-  }, [cleanupAudio]);
+  }, []);
 
   const value: AudioContextType = {
     track,
@@ -262,12 +178,14 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     currentTime,
     duration,
     error,
+    playbackRate,
     playTrack,
     togglePlayPause,
     stop,
     seek,
     retry,
     dismissError,
+    setPlaybackRate,
   };
 
   return <AudioContext.Provider value={value}>{children}</AudioContext.Provider>;
