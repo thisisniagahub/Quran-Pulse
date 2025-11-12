@@ -132,3 +132,24 @@ export const generateGenericContent = async (prompt: string, agent: Agent): Prom
         return "Maaf, tidak dapat memuatkan jawapan pada masa ini.";
     }
 };
+
+/**
+ * Sends an image and a prompt to the backend to be edited by the AI model.
+ * @param imageData The base64 encoded image data (without the data URL prefix).
+ * @param mimeType The MIME type of the image (e.g., 'image/jpeg').
+ * @param prompt The text prompt describing the desired edit.
+ * @returns A promise that resolves with the base64 string of the edited image, or null on error.
+ */
+export const editImage = async (imageData: string, mimeType: string, prompt: string): Promise<string | null> => {
+    try {
+        const data = await postData<{ imageData: string }>('/edit-image', {
+            imageData,
+            mimeType,
+            prompt,
+        });
+        return data.imageData;
+    } catch (error) {
+        console.error('Error editing image:', error);
+        return null;
+    }
+};

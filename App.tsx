@@ -8,10 +8,10 @@ import { cn } from './lib/utils';
 import { OnboardingTutorial } from './components/OnboardingTutorial';
 
 // --- Lazy-loaded Components ---
-const QuranReader = lazy(() => import('./components/QuranReader').then(module => ({ default: module.QuranReader })));
+const QuranReader = lazy(() => import('./components/QuranReader'));
 const PrayerTimes = lazy(() => import('./components/PrayerTimes').then(module => ({ default: module.PrayerTimes })));
 const QiblaCompass = lazy(() => import('./components/QiblaCompass').then(module => ({ default: module.QiblaCompass })));
-const AICompanion = lazy(() => import('./components/AICompanion').then(module => ({ default: module.AICompanion })));
+const AICompanion = lazy(() => import('./components/AICompanion'));
 const TanyaUstaz = lazy(() => import('./components/TanyaUstaz').then(module => ({ default: module.TanyaUstaz })));
 const TajweedTutor = lazy(() => import('./components/TajweedTutor').then(module => ({ default: module.TajweedTutor })));
 const StudyPlanner = lazy(() => import('./components/StudyPlanner').then(module => ({ default: module.StudyPlanner })));
@@ -31,12 +31,12 @@ const KisahNabiView = lazy(() => import('./components/KisahNabiView').then(modul
 const PanduanIbadahView = lazy(() => import('./components/PanduanIbadahView').then(module => ({ default: module.PanduanIbadahView })));
 const TasbihDigital = lazy(() => import('./components/TasbihDigital').then(module => ({ default: module.TasbihDigital })));
 const SirahNabawiyahView = lazy(() => import('./components/SirahNabawiyahView').then(module => ({ default: module.SirahNabawiyahView })));
-const HijriCalendarView = lazy(() => import('./components/HijriCalendarView').then(module => ({ default: module.HijriCalendarView })));
+const HijriCalendarView = lazy(() => import('./components/HijriCalendarView'));
 const ArtikelIslamiView = lazy(() => import('./components/ArtikelIslamiView').then(module => ({ default: module.ArtikelIslamiView })));
 const HalalCheckerView = lazy(() => import('./components/HalalCheckerView').then(module => ({ default: module.HalalCheckerView })));
-const ImageEditor = lazy(() => import('./components/ImageEditor').then(module => ({ default: module.ImageEditor })));
+const ImageEditor = lazy(() => import('./components/ImageEditor'));
 const DailyQuoteView = lazy(() => import('./components/DailyQuoteView'));
-const PlaceholderView = lazy(() => import('./components/PlaceholderView').then(module => ({ default: module.PlaceholderView })));
+const PlaceholderView = lazy(() => import('./components/PlaceholderView'));
 
 const LoadingSpinner = () => (
     <div className="flex justify-center items-center h-full">

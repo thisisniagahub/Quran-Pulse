@@ -116,3 +116,5 @@ export const HijriCalendarView: React.FC = () => {
     </div>
   );
 };
+
+export default HijriCalendarView;
