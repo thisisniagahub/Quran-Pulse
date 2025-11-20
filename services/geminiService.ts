@@ -133,6 +133,7 @@ export const generateGenericContent = async (prompt: string, agent: Agent): Prom
     }
 };
 
+// FIX: Add missing `editImage` function to resolve import error in ImageEditor.tsx.
 /**
  * Sends an image and a prompt to the backend to be edited by the AI model.
  * @param imageData The base64 encoded image data (without the data URL prefix).

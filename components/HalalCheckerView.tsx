@@ -78,3 +78,5 @@ export const HalalCheckerView: React.FC = () => {
     </div>
   );
 };
+
+export default HalalCheckerView;

@@ -2,26 +2,24 @@ import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { GlobalAudioPlayer } from './components/GlobalAudioPlayer';
 import { BottomNavBar } from './components/BottomNavBar';
-// FIX: Add MenuIcon for the mobile sidebar toggle.
 import { SunIcon, MoonIcon, MenuIcon } from './components/icons/Icons';
 import { ActiveView, Theme } from './types';
 import { cn } from './lib/utils';
 import { OnboardingTutorial } from './components/OnboardingTutorial';
+import { ToastContainer } from './components/ui/Toast';
 
-// --- Lazy-loaded Components ---
-// FIX: Using default exports with lazy loading to ensure proper type inference for component props.
+// --- Lazy-loaded Components (Standardized to use default exports) ---
 const QuranReader = lazy(() => import('./components/QuranReader'));
-const PrayerTimes = lazy(() => import('./components/PrayerTimes').then(module => ({ default: module.PrayerTimes })));
-const QiblaCompass = lazy(() => import('./components/QiblaCompass').then(module => ({ default: module.QiblaCompass })));
-// FIX: Using default exports with lazy loading to ensure proper type inference for component props.
+const PrayerTimes = lazy(() => import('./components/PrayerTimes'));
+const QiblaCompass = lazy(() => import('./components/QiblaCompass'));
 const AICompanion = lazy(() => import('./components/AICompanion'));
-const TanyaUstaz = lazy(() => import('./components/TanyaUstaz').then(module => ({ default: module.TanyaUstaz })));
-const TajweedTutor = lazy(() => import('./components/TajweedTutor').then(module => ({ default: module.TajweedTutor })));
-const StudyPlanner = lazy(() => import('./components/StudyPlanner').then(module => ({ default: module.StudyPlanner })));
-const IbadahTracker = lazy(() => import('./components/IbadahTracker').then(module => ({ default: module.IbadahTracker })));
-const DoaList = lazy(() => import('./components/DoaList').then(module => ({ default: module.DoaList })));
-const JawiWriter = lazy(() => import('./components/JawiWriter').then(module => ({ default: module.JawiWriter })));
-const LiveConversation = lazy(() => import('./components/LiveConversation').then(module => ({ default: module.LiveConversation })));
+const TanyaUstaz = lazy(() => import('./components/TanyaUstaz'));
+const TajweedTutor = lazy(() => import('./components/TajweedTutor'));
+const StudyPlanner = lazy(() => import('./components/StudyPlanner'));
+const IbadahTracker = lazy(() => import('./components/IbadahTracker'));
+const DoaList = lazy(() => import('./components/DoaList'));
+const JawiWriter = lazy(() => import('./components/JawiWriter'));
+const LiveConversation = lazy(() => import('./components/LiveConversation'));
 const AsmaulHusna = lazy(() => import('./components/AsmaulHusna'));
 const InteractiveLesson = lazy(() => import('./components/InteractiveLesson'));
 const Leaderboard = lazy(() => import('./components/Leaderboard'));
@@ -29,17 +27,16 @@ const Achievements = lazy(() => import('./components/Achievements'));
 const GemShop = lazy(() => import('./components/GemShop'));
 const DailyGoals = lazy(() => import('./components/DailyGoals'));
 const LearningPath = lazy(() => import('./components/LearningPath'));
-const TafsirView = lazy(() => import('./components/TafsirView').then(module => ({ default: module.TafsirView })));
-const KisahNabiView = lazy(() => import('./components/KisahNabiView').then(module => ({ default: module.KisahNabiView })));
-const PanduanIbadahView = lazy(() => import('./components/PanduanIbadahView').then(module => ({ default: module.PanduanIbadahView })));
-const TasbihDigital = lazy(() => import('./components/TasbihDigital').then(module => ({ default: module.TasbihDigital })));
-const SirahNabawiyahView = lazy(() => import('./components/SirahNabawiyahView').then(module => ({ default: module.SirahNabawiyahView })));
-const HijriCalendarView = lazy(() => import('./components/HijriCalendarView').then(module => ({ default: module.HijriCalendarView })));
-const ArtikelIslamiView = lazy(() => import('./components/ArtikelIslamiView').then(module => ({ default: module.ArtikelIslamiView })));
-const HalalCheckerView = lazy(() => import('./components/HalalCheckerView').then(module => ({ default: module.HalalCheckerView })));
-const ImageEditor = lazy(() => import('./components/ImageEditor').then(module => ({ default: module.ImageEditor })));
+const TafsirView = lazy(() => import('./components/TafsirView'));
+const KisahNabiView = lazy(() => import('./components/KisahNabiView'));
+const PanduanIbadahView = lazy(() => import('./components/PanduanIbadahView'));
+const TasbihDigital = lazy(() => import('./components/TasbihDigital'));
+const SirahNabawiyahView = lazy(() => import('./components/SirahNabawiyahView'));
+const HijriCalendarView = lazy(() => import('./components/HijriCalendarView'));
+const ArtikelIslamiView = lazy(() => import('./components/ArtikelIslamiView'));
+const HalalCheckerView = lazy(() => import('./components/HalalCheckerView'));
 const DailyQuoteView = lazy(() => import('./components/DailyQuoteView'));
-// FIX: Using default exports with lazy loading to ensure proper type inference for component props.
+const ImageEditor = lazy(() => import('./components/ImageEditor'));
 const PlaceholderView = lazy(() => import('./components/PlaceholderView'));
 
 const LoadingSpinner = () => (
@@ -51,9 +48,17 @@ const LoadingSpinner = () => (
 function App() {
   const [activeView, setActiveView] = useState<ActiveView>(ActiveView.QURAN_READER);
   const [viewParams, setViewParams] = useState<any | null>(null);
-  const [theme, setTheme] = useState<Theme>(Theme.LIGHT);
+  const [theme, setTheme] = useState<Theme>(() => {
+    const savedTheme = localStorage.getItem('theme') as Theme;
+    if (savedTheme && (savedTheme === Theme.LIGHT || savedTheme === Theme.DARK)) {
+      return savedTheme;
+    }
+    if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) {
+      return Theme.DARK;
+    }
+    return Theme.LIGHT;
+  });
   const [showOnboarding, setShowOnboarding] = useState(false);
-  // FIX: Add state to manage the sidebar's visibility on mobile.
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -61,13 +66,6 @@ function App() {
     const hasCompletedTutorial = localStorage.getItem('hasCompletedAITutorial');
     if (!hasCompletedTutorial) {
       setShowOnboarding(true);
-    }
-
-    const savedTheme = localStorage.getItem('theme') as Theme;
-    if (savedTheme && (savedTheme === Theme.LIGHT || savedTheme === Theme.DARK)) {
-      setTheme(savedTheme);
-    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      setTheme(Theme.DARK);
     }
   }, []);
 
@@ -89,7 +87,6 @@ function App() {
   const handleSetActiveView = (view: ActiveView, params?: any) => {
     setActiveView(view);
     setViewParams(params || null);
-    // FIX: Close the sidebar when a navigation item is clicked.
     setIsSidebarOpen(false); // Close sidebar on navigation
   };
   
@@ -153,10 +150,10 @@ function App() {
         return <ArtikelIslamiView />;
       case ActiveView.HALAL_CHECKER:
         return <HalalCheckerView />;
-      case ActiveView.IMAGE_EDITOR:
-        return <ImageEditor />;
       case ActiveView.DAILY_QUOTE:
         return <DailyQuoteView />;
+      case ActiveView.IMAGE_EDITOR:
+        return <ImageEditor />;
       default:
         return <PlaceholderView title={activeView as string} description="This feature is coming soon!" />;
     }
@@ -168,12 +165,10 @@ function App() {
       <Sidebar 
         activeView={activeView} 
         setActiveView={handleSetActiveView}
-        // FIX: Pass the required isOpen and onClose props to the Sidebar component.
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
       />
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* FIX: Replaced header with a version that includes a mobile menu button to toggle the sidebar. */}
         <header className="flex-shrink-0 h-16 bg-card border-b border-border flex items-center justify-between px-4 md:px-6">
             <div className="w-10">
                 <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
@@ -203,6 +198,7 @@ function App() {
         activeView={activeView}
         setActiveView={handleSetActiveView}
       />
+      <ToastContainer />
     </div>
   );
 }

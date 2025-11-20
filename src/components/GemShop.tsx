@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
-// FIX: Imported the missing StarIcon.
 import { ShoppingCartIcon, GemIcon, ShieldIcon, ZapIcon, ClockIcon, HeartIcon, SparklesIcon, CrownIcon, PaletteIcon, StarIcon } from './icons/Icons';
 import { PurchaseGemsModal } from './PurchaseGemsModal';
+import { useToast } from '../context/ToastContext';
 
 interface ShopItem {
   id: string;
@@ -19,6 +18,7 @@ const GemShop: React.FC = () => {
   const [gems, setGems] = useState(450);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isModalOpen, setModalOpen] = useState(false);
+  const { addToast } = useToast();
 
   const handleAddGems = (amount: number) => {
     setGems(prevGems => prevGems + amount);
@@ -129,26 +129,34 @@ const GemShop: React.FC = () => {
     ? shopItems 
     : shopItems.filter(item => item.category === selectedCategory);
 
-  const handlePurchase = (itemId: string, price: number) => {
-    if (gems >= price) {
-      setGems(gems - price);
-      alert('✅ Pembelian berjaya!');
+  const handlePurchase = (item: ShopItem) => {
+    if (gems >= item.price) {
+      setGems(gems - item.price);
+      addToast({
+        type: 'success',
+        title: 'Pembelian Berjaya!',
+        description: `Anda telah membeli ${item.name}.`,
+      });
     } else {
-      alert('❌ Permata tidak mencukupi!');
+      addToast({
+        type: 'error',
+        title: 'Permata Tidak Cukup',
+        description: 'Sila tambah baki permata anda untuk membuat pembelian ini.',
+      });
     }
   };
 
   return (
     <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm p-6 mb-6">
+        <div className="bg-card rounded-2xl shadow-sm p-6 mb-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold flex items-center gap-3">
                 <ShoppingCartIcon className="w-8 h-8 text-primary" />
                 Kedai Permata
               </h1>
-              <p className="text-foreground-light/80 dark:text-foreground-dark/80 mt-1">Belanja permata anda untuk power-ups dan kosmetik!</p>
+              <p className="text-foreground/80 mt-1">Belanja permata anda untuk power-ups dan kosmetik!</p>
             </div>
             <div className="bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-3 rounded-2xl shadow-lg">
               <div className="flex items-center gap-2">
@@ -168,7 +176,7 @@ const GemShop: React.FC = () => {
               className={`px-6 py-3 rounded-xl font-semibold whitespace-nowrap transition-all ${
                 selectedCategory === cat.id
                   ? 'bg-primary text-white shadow-lg scale-105'
-                  : 'bg-card-light dark:bg-card-dark hover:bg-card-light/80 dark:hover:bg-card-dark/80'
+                  : 'bg-card hover:bg-accent/10'
               }`}
             >
               <span className="mr-2">{cat.icon}</span>
@@ -182,7 +190,7 @@ const GemShop: React.FC = () => {
           {filteredItems.map(item => (
             <div
               key={item.id}
-              className={`bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border-2 ${rarityBorders[item.rarity]} overflow-hidden hover:shadow-lg transition-all hover:scale-105`}
+              className={`bg-card rounded-2xl shadow-sm border-2 ${rarityBorders[item.rarity]} overflow-hidden hover:shadow-lg transition-all hover:scale-105`}
             >
               {/* Rarity Banner */}
               <div className={`bg-gradient-to-r ${rarityColors[item.rarity]} py-1 text-center`}>
@@ -208,7 +216,7 @@ const GemShop: React.FC = () => {
                     <span className="text-2xl font-bold">{item.price}</span>
                   </div>
                   <button
-                    onClick={() => handlePurchase(item.id, item.price)}
+                    onClick={() => handlePurchase(item)}
                     disabled={gems < item.price}
                     className={`px-6 py-2 rounded-xl font-bold transition-all ${
                       gems >= item.price
@@ -250,7 +258,7 @@ const GemShop: React.FC = () => {
         </div>
 
         {/* Daily Chest */}
-        <div className="mt-8 bg-card-light dark:bg-card-dark rounded-2xl shadow-sm p-6">
+        <div className="mt-8 bg-card rounded-2xl shadow-sm p-6">
           <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
             🎁 Peti Harian
           </h2>
@@ -261,7 +269,7 @@ const GemShop: React.FC = () => {
                 className={`aspect-square rounded-xl flex flex-col items-center justify-center ${
                   day <= 5 
                     ? 'bg-green-100 dark:bg-green-500/20 border-2 border-green-300 dark:border-green-500/50' 
-                    : 'bg-background-light dark:bg-background-dark border-2 border-border-light dark:border-border-dark'
+                    : 'bg-background border-2 border-border'
                 }`}
               >
                 <div className="text-2xl mb-1">

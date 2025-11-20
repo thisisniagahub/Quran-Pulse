@@ -1,6 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { CheckSquareIcon } from './icons/Icons';
+import { Switch } from './ui/Switch';
+import { cn } from '../lib/utils';
 
 const ibadahList = [
   { id: 'fajr', label: 'Solat Subuh' },
@@ -46,42 +47,44 @@ export const IbadahTracker: React.FC = () => {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-primary-light dark:text-primary-dark mb-2">Penjejak Ibadah Harian</h2>
-        <p className="text-foreground-light/80">Tandakan amalan yang telah anda selesaikan hari ini.</p>
+        <h2 className="text-3xl font-bold text-primary mb-2">Penjejak Ibadah Harian</h2>
+        <p className="text-foreground/80">Tandakan amalan yang telah anda selesaikan hari ini.</p>
       </div>
 
       <div className="mb-6">
         <div className="flex justify-between items-center mb-1">
-            <span className="text-sm font-medium text-primary-light dark:text-primary-dark">Selesai Hari Ini</span>
-            <span className="text-sm font-medium text-primary-light dark:text-primary-dark">{completionPercentage}%</span>
+            <span className="text-sm font-medium text-primary">Selesai Hari Ini</span>
+            <span className="text-sm font-medium text-primary">{completionPercentage}%</span>
         </div>
-        <div className="w-full bg-black/10 rounded-full h-2.5">
-          <div className="bg-primary-light dark:bg-primary-dark h-2.5 rounded-full" style={{ width: `${completionPercentage}%` }}></div>
+        <div className="w-full bg-card rounded-md h-4 border-2 border-border p-1">
+          <div className="bg-primary h-full rounded" style={{ width: `${completionPercentage}%` }}></div>
         </div>
       </div>
       
-      <div className="bg-card-light dark:bg-card-dark p-4 sm:p-6 rounded-xl shadow-sm">
+      <div className="bg-card p-4 sm:p-6 rounded-xl shadow-[4px_4px_0px_hsl(var(--border))] border-2 border-border">
         <div className="space-y-3">
           {ibadahList.map(item => (
             <label
               key={item.id}
               htmlFor={item.id}
-              className={`flex items-center p-4 rounded-lg cursor-pointer transition-all ${
+              className={cn(
+                'flex items-center justify-between p-4 rounded-lg cursor-pointer transition-all border-2 border-border',
                 completed.has(item.id)
-                  ? 'bg-accent/10 dark:bg-accent/20 border-l-4 border-accent'
-                  : 'bg-black/5 hover:bg-black/10'
-              }`}
+                  ? 'bg-accent/20 border-accent'
+                  : 'bg-background hover:bg-foreground/5'
+              )}
             >
-              <input
-                id={item.id}
-                type="checkbox"
-                checked={completed.has(item.id)}
-                onChange={() => toggleIbadah(item.id)}
-                className="w-5 h-5 rounded text-primary-light dark:text-primary-dark focus:ring-primary-light/50 bg-black/20 border-white/20"
-              />
-              <span className={`ml-4 text-lg font-medium ${completed.has(item.id) ? 'line-through text-foreground-light/50' : ''}`}>
+              <span className={cn(
+                  'text-lg font-medium', 
+                  completed.has(item.id) ? 'line-through text-foreground/50' : ''
+              )}>
                 {item.label}
               </span>
+              <Switch
+                id={item.id}
+                checked={completed.has(item.id)}
+                onCheckedChange={() => toggleIbadah(item.id)}
+              />
             </label>
           ))}
         </div>
@@ -89,3 +92,5 @@ export const IbadahTracker: React.FC = () => {
     </div>
   );
 };
+
+export default IbadahTracker;

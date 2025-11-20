@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon, CalendarDaysIcon } from './icons/Icons';
 import { Card, CardContent } from './ui/Card';
@@ -61,13 +63,19 @@ export const HijriCalendarView: React.FC = () => {
     });
   };
 
+  // Ensure monthData is not empty before accessing its elements
   const firstDayOfMonth = monthData.length > 0 ? new Date(`${monthData[0].date.gregorian.date.split('-').reverse().join('-')}T00:00:00`).getDay() : 0;
   
   const getHijriMonthName = () => {
       if (monthData.length === 0) return '';
-      const hijriMonth = monthData[Math.floor(monthData.length / 2)].date.hijri.month.en;
-      const hijriYear = monthData[Math.floor(monthData.length / 2)].date.hijri.year;
-      return `${hijriMonth} ${hijriYear}`;
+      // Use a more robust way to get a representative date for the month
+      const midMonthDay = monthData[Math.floor(monthData.length / 2)];
+      if (midMonthDay && midMonthDay.date && midMonthDay.date.hijri && midMonthDay.date.hijri.month && midMonthDay.date.hijri.year) {
+        const hijriMonth = midMonthDay.date.hijri.month.en;
+        const hijriYear = midMonthDay.date.hijri.year;
+        return `${hijriMonth} ${hijriYear}`;
+      }
+      return '';
   }
 
   return (
@@ -116,3 +124,5 @@ export const HijriCalendarView: React.FC = () => {
     </div>
   );
 };
+
+export default HijriCalendarView;

@@ -15,7 +15,6 @@ type AgentSet = {
     glm: Agent;
 }
 
-// FIX: Replaced JSX with React.createElement to avoid JSX parsing issues in a .ts file.
 const geminiBaseIcon = React.createElement(SparklesIcon, { className: "w-5 h-5" });
 const glmBaseIcon = React.createElement(BrainCircuitIcon, { className: "w-5 h-5" });
 
@@ -33,7 +32,6 @@ export const AGENT_DEFINITIONS: { [key: string]: AgentSet } = {
       id: 'glm',
       name: 'Pakar Fiqh (GLM-4.6)',
       description: 'Jawapan mendalam & berstruktur untuk persoalan Fiqh.',
-      // FIX: Replaced JSX with React.createElement to avoid JSX parsing issues in a .ts file.
       icon: React.createElement(ScaleIcon, { className: "w-5 h-5" }),
       model: 'gemini-2.5-pro',
       systemInstruction: `You are an AI 'Pakar Fiqh', a specialist in Islamic jurisprudence, powered by advanced models. Your primary language is Bahasa Melayu. Provide detailed, well-structured answers to questions about Fiqh (ibadah, muamalat, etc.), citing evidence from the Quran and primary Hadith sources where possible. Use clear headings and bullet points for complex topics. If a question is not Fiqh-related, gently state your specialization and suggest the user might get a better answer from a general scholar. Always maintain a formal, scholarly, and respectful tone. Start your first response by introducing yourself as "Pakar Fiqh AI" and greeting the user with "Assalamualaikum".`

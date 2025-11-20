@@ -1,11 +1,51 @@
-import React, { useState } from 'react';
-import { sirahNabawiyahData } from '../data/sirahNabawiyahData';
+import React, { useState, useEffect } from 'react';
 import type { ContentStory } from '../types';
+import { getCache, setCache } from '../services/dbService';
 import { BookMarkedIcon, ChevronLeftIcon } from './icons/Icons';
 import { Card, CardContent } from './ui/Card';
+import { Skeleton } from './ui/Skeleton';
+
+const ListItemSkeleton = () => (
+     <Card>
+        <CardContent className="p-6">
+            <Skeleton className="h-6 w-1/2 mb-3" />
+            <Skeleton className="h-4 w-full" />
+        </CardContent>
+    </Card>
+);
+
+const SirahSkeleton = () => (
+    <div className="space-y-4">
+        {Array.from({ length: 3 }).map((_, i) => <ListItemSkeleton key={i} />)}
+    </div>
+);
 
 export const SirahNabawiyahView: React.FC = () => {
+  const [events, setEvents] = useState<ContentStory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<ContentStory | null>(null);
+
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        const cachedData = await getCache('sirahNabawiyahData');
+        if (cachedData) {
+          setEvents(cachedData);
+        } else {
+          const response = await fetch('/data/sirahNabawiyahData.json');
+          const data = await response.json();
+          setEvents(data);
+          await setCache('sirahNabawiyahData', data);
+        }
+      } catch (error) {
+        console.error("Failed to load Sirah Nabawiyah data", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
   if (selectedEvent) {
     return (
@@ -35,16 +75,22 @@ export const SirahNabawiyahView: React.FC = () => {
         </h2>
         <p className="text-foreground-light/80 dark:text-foreground-dark/80">Menelusuri Perjalanan Hidup Rasulullah S.A.W.</p>
       </div>
-      <div className="space-y-4">
-        {sirahNabawiyahData.map(event => (
-          <Card key={event.id} className="cursor-pointer hover:border-primary transition-colors" onClick={() => setSelectedEvent(event)}>
-            <CardContent className="p-6">
-              <h3 className="text-xl font-bold mb-2">{event.title}</h3>
-              <p className="text-foreground-light/80 dark:text-foreground-dark/80">{event.summary}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+       {isLoading ? (
+        <SirahSkeleton />
+      ) : (
+        <div className="space-y-4">
+          {events.map(event => (
+            <Card key={event.id} className="cursor-pointer hover:border-primary transition-colors" onClick={() => setSelectedEvent(event)}>
+              <CardContent className="p-6">
+                <h3 className="text-xl font-bold mb-2">{event.title}</h3>
+                <p className="text-foreground-light/80 dark:text-foreground-dark/80">{event.summary}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
+
+export default SirahNabawiyahView;

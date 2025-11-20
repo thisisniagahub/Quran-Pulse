@@ -98,5 +98,4 @@ export const AICompanion: React.FC<AICompanionProps> = ({ setActiveView }) => {
     );
 };
 
-// FIX: Add a default export to solve lazy loading type inference issues.
 export default AICompanion;

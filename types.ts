@@ -34,8 +34,8 @@ export enum ActiveView {
   HIJRI_CALENDAR = 'hijri-calendar',
   ARTICLES = 'articles',
   HALAL_CHECKER = 'halal-checker',
-  IMAGE_EDITOR = 'image-editor',
   DAILY_QUOTE = 'daily-quote',
+  IMAGE_EDITOR = 'image-editor',
 }
 
 // --- Quran Data ---
@@ -86,6 +86,17 @@ export interface PrayerTimesData {
   Maghrib: string;
   Isha: string;
 }
+
+export interface NotificationSetting {
+  phoneNumber: string;
+  offset: number; // In minutes (-15, -10, -5, 0)
+  active: boolean;
+}
+
+export interface AllNotificationSettings {
+  [prayerKey: string]: NotificationSetting;
+}
+
 
 // --- AI & Chat ---
 
@@ -187,6 +198,7 @@ export interface AudioContextType {
   retry: () => void;
   dismissError: () => void;
   setPlaybackRate: (rate: number) => void;
+  setOnEndedCallback: (callback: (() => void) | null) => void;
 }
 
 // --- Static Content Types ---
@@ -221,4 +233,22 @@ export interface Article {
   date: string;
   summary: string;
   content: string;
+}
+
+// --- UI Types ---
+export type ToastType = 'success' | 'error' | 'info';
+
+export interface ToastMessage {
+  id: number;
+  type: ToastType;
+  title: string;
+  description?: string;
+}
+
+// FIX: Exported AsmaulHusna type, previously defined locally in AsmaulHusna.tsx.
+export interface AsmaulHusna {
+  number: number;
+  arabic: string;
+  transliteration: string;
+  translation_ms: string;
 }

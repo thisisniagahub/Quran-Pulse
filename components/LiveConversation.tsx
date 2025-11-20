@@ -10,7 +10,7 @@ type AgentId = 'gemini' | 'glm';
 
 export const LiveConversation: React.FC = () => {
     const [status, setStatus] = useState<'idle' | 'connecting' | 'listening' | 'speaking' | 'error'>('idle');
-    const [transcripts, setTranscripts] = useState<{ sender: 'user' | 'ai', text: string }[]>([]);
+    const [transcripts, setTranscripts] = useState<{ sender: 'user' | 'ai', text: string }[]>([] );
     const [error, setError] = useState<string | null>(null);
     const [selectedAgentId, setSelectedAgentId] = useState<AgentId>('gemini');
 
@@ -39,12 +39,11 @@ export const LiveConversation: React.FC = () => {
         scriptProcessorRef.current?.disconnect();
         mediaStreamSourceRef.current?.disconnect();
         audioContextRef.current?.close().catch(console.error);
-        outputAudioContextRef.current?.close().catch(console.error);
+        // Do not close outputAudioContextRef.current here as it might be used by ongoing audio playback
         streamRef.current = null;
         audioContextRef.current = null;
         scriptProcessorRef.current = null;
         mediaStreamSourceRef.current = null;
-        outputAudioContextRef.current = null;
     };
 
     const startSession = async () => {
@@ -55,8 +54,11 @@ export const LiveConversation: React.FC = () => {
         currentOutputTranscriptionRef.current = '';
 
         try {
-            if (!process.env.API_KEY) throw new Error("API Key not found");
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const API_KEY = process.env.API_KEY;
+            if (!API_KEY) {
+                throw new Error("API Key not found. Please set API_KEY environment variable.");
+            }
+            const ai = new GoogleGenAI({ apiKey: API_KEY });
 
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             streamRef.current = stream;
@@ -112,7 +114,7 @@ export const LiveConversation: React.FC = () => {
 
         } catch (error) {
             console.error("Failed to start session:", error);
-            setError("Gagal memulakan sesi. Pastikan anda memberi kebenaran mikrofon.");
+            setError("Gagal memulakan sesi. Pastikan anda memberi kebenaran mikrofon dan API Key ditetapkan.");
             setStatus('error');
             cleanupAudio();
         }
@@ -241,3 +243,5 @@ export const LiveConversation: React.FC = () => {
         </div>
     );
 };
+
+export default LiveConversation;

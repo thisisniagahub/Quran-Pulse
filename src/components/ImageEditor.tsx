@@ -177,3 +177,5 @@ export const ImageEditor: React.FC = () => {
         </div>
     );
 };
+
+export default ImageEditor;

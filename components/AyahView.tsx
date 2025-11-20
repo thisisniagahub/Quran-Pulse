@@ -3,12 +3,14 @@ import type { Ayah, Translation } from '../types';
 import { useAudioPlayer } from '../context/AudioContext';
 import { getAyahExplanation as getAyahExplanationFromService } from '../services/geminiService';
 import { addAyahExplanation, getAyahExplanation as getCachedExplanation } from '../services/dbService';
+import { getTafsirRingkas } from '../services/tafsirService';
 import { generateSpeech } from '../services/geminiService';
 import { Button } from './ui/Button';
-import { SpeakerWaveIcon, BookOpenIcon, PlayIcon, StopCircleIcon, Share2Icon } from './icons/Icons';
+import { SpeakerWaveIcon, BookOpenIcon, PlayIcon, StopCircleIcon, Share2Icon, BookMarkedIcon } from './icons/Icons';
 import { Card, CardContent } from './ui/Card';
 import { cn } from '../lib/utils';
 import type { Agent } from '../lib/agents';
+import { useToast } from '../context/ToastContext';
 
 interface AyahViewProps {
   ayah: Ayah;
@@ -42,7 +44,13 @@ export const AyahView: React.FC<AyahViewProps> = memo(({
   const [showTafsir, setShowTafsir] = useState(false);
   const [tafsir, setTafsir] = useState<string | null>(null);
   const [isLoadingTafsir, setIsLoadingTafsir] = useState(false);
+  
+  const [showQuickTafsir, setShowQuickTafsir] = useState(false);
+  const [quickTafsir, setQuickTafsir] = useState<string | null>(null);
+  const [isLoadingQuickTafsir, setIsLoadingQuickTafsir] = useState(false);
+  
   const { playTrack, stop, track, isPlaying } = useAudioPlayer();
+  const { addToast } = useToast();
   const ayahRef = useRef<HTMLDivElement>(null);
 
   const audioSrc = `https://everyayah.com/data/Alafasy_128kbps/${String(surahNumber).padStart(3, '0')}${String(ayah.numberInSurah).padStart(3, '0')}.mp3`;
@@ -69,6 +77,7 @@ export const AyahView: React.FC<AyahViewProps> = memo(({
   const handleToggleTafsir = async () => {
     const newShowState = !showTafsir;
     setShowTafsir(newShowState);
+    if (newShowState) setShowQuickTafsir(false); // Close the other tafsir
 
     if (newShowState && !tafsir) {
       setIsLoadingTafsir(true);
@@ -86,6 +95,19 @@ export const AyahView: React.FC<AyahViewProps> = memo(({
       
       setTafsir(explanation);
       setIsLoadingTafsir(false);
+    }
+  };
+
+  const handleToggleQuickTafsir = async () => {
+    const newShowState = !showQuickTafsir;
+    setShowQuickTafsir(newShowState);
+    if (newShowState) setShowTafsir(false); // Close the other tafsir
+
+    if (newShowState && !quickTafsir) {
+        setIsLoadingQuickTafsir(true);
+        const tafsirText = await getTafsirRingkas(surahNumber, ayah.numberInSurah);
+        setQuickTafsir(tafsirText);
+        setIsLoadingQuickTafsir(false);
     }
   };
   
@@ -117,9 +139,9 @@ export const AyahView: React.FC<AyahViewProps> = memo(({
     } else {
       try {
         await navigator.clipboard.writeText(shareText);
-        alert('Ayat disalin ke papan klip!');
+        addToast({ type: 'info', title: 'Disalin!', description: 'Ayat telah disalin ke papan klip.' });
       } catch (err) {
-        alert('Fungsi kongsi tidak disokong pada pelayar ini.');
+        addToast({ type: 'error', title: 'Kongsi Gagal', description: 'Fungsi kongsi tidak disokong pada pelayar ini.' });
       }
     }
   };
@@ -128,14 +150,13 @@ export const AyahView: React.FC<AyahViewProps> = memo(({
     <div 
         ref={ayahRef}
         className={cn(
-            "border-b border-border-light dark:border-border-dark transition-all duration-300",
-            (isActive || isAutoplaying)
-                ? 'bg-yellow-100 dark:bg-yellow-900/30 border-l-4 border-yellow-500 py-4 pl-3 pr-4'
-                : 'p-4'
+            "border-b border-white/20 p-4 transition-all duration-300 rounded-lg",
+            (isActive || isAutoplaying) && 'bg-white/10',
+            isAutoplaying && 'animate-subtle-glow'
         )}
     >
       <div className="flex justify-between items-center mb-4">
-        <span className="font-bold text-sm bg-primary/10 text-primary px-3 py-1 rounded-full">
+        <span className="font-bold text-sm bg-primary/80 text-primary-foreground px-3 py-1 rounded-full">
             {surahNumber}:{ayah.numberInSurah}
         </span>
         <p dir="rtl" className="font-arabic text-3xl md:text-4xl text-right leading-relaxed md:leading-loose antialiased">
@@ -144,15 +165,19 @@ export const AyahView: React.FC<AyahViewProps> = memo(({
       </div>
 
       <div className="space-y-3 mt-4 text-left">
-        {showTransliteration && <p className="font-sans text-accent italic">{translations.transliteration.text}</p>}
-        {showMalay && <p className="text-foreground-light/80 dark:text-foreground-dark/80">{translations.malay.text}</p>}
-        {showEnglish && <p className="text-sm text-foreground-light/70 dark:text-foreground-dark/70 italic">"{translations.sahih.text}"</p>}
+        {showTransliteration && <p className="font-sans text-foreground/80 italic">{translations.transliteration.text}</p>}
+        {showMalay && <p className="text-foreground/80">{translations.malay.text}</p>}
+        {showEnglish && <p className="text-sm text-foreground/70 italic">"{translations.sahih.text}"</p>}
       </div>
 
-       <div className="mt-4 flex items-center gap-2">
+       <div className="mt-4 flex items-center gap-2 flex-wrap">
             <Button onClick={handlePlayAudio} variant="ghost" size="sm" className="gap-2">
                 {isCurrentlyPlaying ? <StopCircleIcon className="w-4 h-4" /> : <PlayIcon className="w-4 h-4" />}
                 {isCurrentlyPlaying ? 'Henti' : 'Dengar'}
+            </Button>
+            <Button onClick={handleToggleQuickTafsir} variant="ghost" size="sm" className="gap-2">
+                <BookMarkedIcon className="w-4 h-4" />
+                {showQuickTafsir ? 'Tutup Ringkasan' : 'Tafsiran Cepat'}
             </Button>
             <Button onClick={handleToggleTafsir} variant="ghost" size="sm" className="gap-2">
                 <BookOpenIcon className="w-4 h-4" />
@@ -163,12 +188,35 @@ export const AyahView: React.FC<AyahViewProps> = memo(({
                 Kongsi
             </Button>
         </div>
+
+        {/* Quick Tafsir (JAKIM) Panel */}
+        <div className={cn(
+            "overflow-hidden transition-all duration-500 ease-in-out",
+            showQuickTafsir ? "max-h-[1000px] opacity-100 mt-4" : "max-h-0 opacity-0"
+        )}>
+         <Card className="bg-blue-500/10 border-blue-500/20">
+            <CardContent className="p-4">
+                {isLoadingQuickTafsir ? (
+                    <div className="flex items-center gap-2 text-sm">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                        <span>Memuatkan...</span>
+                    </div>
+                ) : (
+                    <>
+                        <h4 className="font-bold text-blue-300">Tafsiran Cepat (JAKIM)</h4>
+                        <p className="text-sm whitespace-pre-line mt-2">{quickTafsir}</p>
+                    </>
+                )}
+            </CardContent>
+         </Card>
+      </div>
       
+        {/* AI Tafsir Panel */}
         <div className={cn(
             "overflow-hidden transition-all duration-500 ease-in-out",
             showTafsir ? "max-h-[1000px] opacity-100 mt-4" : "max-h-0 opacity-0"
         )}>
-         <Card className="bg-background-light dark:bg-background-dark">
+         <Card>
             <CardContent className="p-4">
                 {isLoadingTafsir ? (
                     <div className="flex items-center gap-2 text-sm">

@@ -1,8 +1,7 @@
-// FIX: Import Request and Response types directly from express to resolve type conflicts and overload errors.
-import express, { Request, Response } from 'express';
+// FIX: Changed express import to namespace import to resolve type conflicts with global DOM types.
+import * as express from 'express';
 import cors from 'cors';
 import { rateLimit } from 'express-rate-limit';
-// FIX: Import GenerateContentConfig for proper typing of conditional config objects.
 import { GoogleGenAI, Modality, GenerateContentConfig } from '@google/genai';
 
 // In Vercel, environment variables are managed in the project settings.
@@ -11,11 +10,10 @@ if (!process.env.GEMINI_API_KEY) {
 }
 
 const app = express();
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 // Middleware
 app.use(cors());
-// FIX: The `app.use` calls were failing due to incorrect type inference for the `express` module.
-// Importing `Request` and `Response` explicitly and using them throughout the file resolves these overload issues.
 app.use(express.json({ limit: '10mb' }));
 
 const limiter = rateLimit({
@@ -27,25 +25,21 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// AI Client
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
 // Error Handler Helper
-// FIX: Use explicit `Response` type from express to ensure properties like 'status' and 'json' exist.
-const handleApiError = (res: Response, error: any, context: string) => {
+// FIX: Use express.Response type to avoid conflict with global DOM Response type.
+const handleApiError = (res: express.Response, error: any, context: string) => {
     console.error(`Error in ${context}:`, error);
     res.status(500).json({ error: `Failed to ${context}. Please try again.` });
 };
 
 // --- API Routes (prefixed with /api/ in client calls) ---
 
-// FIX: Use `Request` and `Response` types from express to correctly access `req.body` and `res` methods.
-app.post('/generate-content', async (req: Request, res: Response) => {
+// FIX: Use express.Request and express.Response types to avoid conflict with global DOM types.
+app.post('/generate-content', async (req: express.Request, res: express.Response) => {
     try {
         const { model, prompt, systemInstruction } = req.body as { model?: string, prompt?: string, systemInstruction?: string };
         if (!prompt) return res.status(400).json({ error: 'Prompt is required.' });
         
-        // FIX: Conditionally build the config to avoid passing `undefined`.
         const config: GenerateContentConfig = {};
         if (systemInstruction) {
             config.systemInstruction = systemInstruction;
@@ -56,15 +50,15 @@ app.post('/generate-content', async (req: Request, res: Response) => {
             contents: [{ parts: [{ text: prompt }] }],
             config,
         });
-        // FIX: Ensure response.text is handled safely if it's undefined.
+        
         res.json({ text: response.text ?? '' });
     } catch (error) {
         handleApiError(res, error, 'generate content');
     }
 });
 
-// FIX: Use `Request` and `Response` types from express to correctly access `req.body` and `res` methods.
-app.post('/generate-study-plan', async (req: Request, res: Response) => {
+// FIX: Use express.Request and express.Response types to avoid conflict with global DOM types.
+app.post('/generate-study-plan', async (req: express.Request, res: express.Response) => {
     try {
         const { goal, duration, level, model, systemInstruction } = req.body;
         if (!goal || !duration || !level) return res.status(400).json({ error: 'Goal, duration, and level are required.' });
@@ -84,7 +78,6 @@ app.post('/generate-study-plan', async (req: Request, res: Response) => {
             config: { systemInstruction, responseMimeType: 'application/json' }
         });
         
-        // FIX: Add a check for `response.text` before parsing to prevent runtime errors.
         const text = response.text;
         if (!text) {
             throw new Error("No text response received from AI for study plan.");
@@ -95,8 +88,8 @@ app.post('/generate-study-plan', async (req: Request, res: Response) => {
     }
 });
 
-// FIX: Use `Request` and `Response` types from express to correctly access `req.body` and `res` methods.
-app.post('/convert-to-jawi', async (req: Request, res: Response) => {
+// FIX: Use express.Request and express.Response types to avoid conflict with global DOM types.
+app.post('/convert-to-jawi', async (req: express.Request, res: express.Response) => {
     try {
         const { rumiText, model, systemInstruction } = req.body;
         if (!rumiText) return res.status(400).json({ error: 'Rumi text is required.' });
@@ -109,18 +102,18 @@ app.post('/convert-to-jawi', async (req: Request, res: Response) => {
             contents: [{ parts: [{ text: prompt }] }],
             config: { systemInstruction }
         });
-        // FIX: Safely handle potentially undefined text with nullish coalescing.
+        
         res.json({ jawi: response.text?.trim() ?? '' });
     } catch (error) {
         handleApiError(res, error, 'convert to Jawi');
     }
 });
 
-// FIX: Use `Request` and `Response` types from express to correctly access `req.body` and `res` methods.
-app.post('/generate-speech', async (req: Request, res: Response) => {
+// FIX: Use express.Request and express.Response types to avoid conflict with global DOM types.
+app.post('/generate-speech', async (req: express.Request, res: express.Response) => {
     try {
         const { text, voice } = req.body as { text?: string, voice?: string };
-        // FIX: Add a stricter check for text to satisfy TypeScript's control flow analysis.
+        
         if (!text || typeof text !== 'string') {
             return res.status(400).json({ error: 'Text is required and must be a string.' });
         }
@@ -145,8 +138,8 @@ app.post('/generate-speech', async (req: Request, res: Response) => {
     }
 });
 
-// FIX: Use `Request` and `Response` types from express to correctly access `req.body` and `res` methods.
-app.post('/tajweed-feedback', async (req: Request, res: Response) => {
+// FIX: Use express.Request and express.Response types to avoid conflict with global DOM types.
+app.post('/tajweed-feedback', async (req: express.Request, res: express.Response) => {
     try {
         const { originalText, userTranscript, model, systemInstruction } = req.body;
         if (!originalText || !userTranscript) return res.status(400).json({ error: 'Original text and user transcript are required.' });
@@ -163,7 +156,6 @@ app.post('/tajweed-feedback', async (req: Request, res: Response) => {
             config: { systemInstruction, responseMimeType: 'application/json' }
         });
         
-        // FIX: Add a check for `response.text` before parsing.
         const text = response.text;
         if (!text) {
             throw new Error("No text response received from AI for tajweed feedback.");
@@ -174,7 +166,8 @@ app.post('/tajweed-feedback', async (req: Request, res: Response) => {
     }
 });
 
-app.post('/edit-image', async (req: Request, res: Response) => {
+// FIX: Use express.Request and express.Response types to avoid conflict with global DOM types.
+app.post('/edit-image', async (req: express.Request, res: express.Response) => {
     try {
         const { imageData, mimeType, prompt } = req.body;
         if (!imageData || !mimeType || !prompt) {
@@ -185,15 +178,8 @@ app.post('/edit-image', async (req: Request, res: Response) => {
             model: 'gemini-2.5-flash-image',
             contents: {
                 parts: [
-                    {
-                        inlineData: {
-                            data: imageData,
-                            mimeType: mimeType,
-                        },
-                    },
-                    {
-                        text: prompt,
-                    },
+                    { inlineData: { data: imageData, mimeType: mimeType } },
+                    { text: prompt },
                 ],
             },
             config: {
@@ -201,28 +187,19 @@ app.post('/edit-image', async (req: Request, res: Response) => {
             },
         });
 
-        // The model returns the new image in the first part of the first candidate
-        const editedImagePart = response.candidates?.[0]?.content?.parts?.[0];
-
-        if (editedImagePart && 'inlineData' in editedImagePart && editedImagePart.inlineData) {
-            // FIX: Check if `data` is a string before assigning it to a strictly typed variable.
-            const base64ImageBytes = editedImagePart.inlineData.data;
-            if (typeof base64ImageBytes === 'string') {
-                res.json({ imageData: base64ImageBytes });
-            } else {
-                 throw new Error('Image data received from AI model is malformed.');
-            }
+        const editedImagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData);
+        if (editedImagePart && editedImagePart.inlineData) {
+            res.json({ imageData: editedImagePart.inlineData.data });
         } else {
-            throw new Error('No image data received from the AI model.');
+            throw new Error("No edited image data received from AI.");
         }
-
     } catch (error) {
         handleApiError(res, error, 'edit image');
     }
 });
 
-// FIX: Use `Request` and `Response` types from express to correctly access `req.body` and `res` methods.
-app.post('/create-payment', async (req: Request, res: Response) => {
+// FIX: Use express.Request and express.Response types to avoid conflict with global DOM types.
+app.post('/create-payment', async (req: express.Request, res: express.Response) => {
     try {
         const { packId, priceString } = req.body;
         if (!packId || !priceString) return res.status(400).json({ error: 'Pack ID and price are required.' });

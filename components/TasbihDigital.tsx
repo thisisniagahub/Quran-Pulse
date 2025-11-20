@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RepeatIcon, RefreshIcon, PlusIcon } from './icons/Icons';
+import { RepeatIcon, RefreshIcon } from './icons/Icons';
 import { Card, CardContent } from './ui/Card';
 
 const presets = [
@@ -13,13 +13,21 @@ export const TasbihDigital: React.FC = () => {
     const [count, setCount] = useState(0);
     const [target, setTarget] = useState(33);
     const [activePreset, setActivePreset] = useState("Subhanallah");
+    const [ripples, setRipples] = useState<{ id: number, x: number, y: number }[]>([]);
 
-    const handleIncrement = () => {
+    const handleIncrement = (event: React.MouseEvent<HTMLDivElement>) => {
         setCount(prev => prev + 1);
-        // Haptic feedback for mobile devices
         if (navigator.vibrate) {
             navigator.vibrate(50);
         }
+        
+        const rect = event.currentTarget.getBoundingClientRect();
+        const newRipple = {
+            id: Date.now(),
+            x: event.clientX - rect.left,
+            y: event.clientY - rect.top,
+        };
+        setRipples(prevRipples => [...prevRipples, newRipple]);
     };
 
     const handleReset = () => {
@@ -41,17 +49,25 @@ export const TasbihDigital: React.FC = () => {
                     <RepeatIcon className="w-8 h-8" />
                     Tasbih Digital
                 </h2>
-                <p className="text-foreground-light/80 dark:text-foreground-dark/80">Mulakan zikir anda di mana sahaja.</p>
+                <p className="text-foreground/80">Mulakan zikir anda di mana sahaja.</p>
             </div>
 
-            <Card className="mb-6">
+            <Card className="mb-6 overflow-hidden">
                 <CardContent className="p-6">
                     <div 
-                        className="relative w-64 h-64 mx-auto rounded-full flex items-center justify-center cursor-pointer select-none"
+                        className="relative w-64 h-64 mx-auto rounded-full flex items-center justify-center cursor-pointer select-none bg-white/10 backdrop-blur-lg border border-white/20 shadow-xl overflow-hidden"
                         onClick={handleIncrement}
                     >
-                        <svg className="absolute w-full h-full" viewBox="0 0 100 100">
-                            <circle className="text-border-light dark:text-border-dark" strokeWidth="5" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" />
+                        {ripples.map(ripple => (
+                            <span
+                                key={ripple.id}
+                                className="absolute bg-primary/30 rounded-full animate-ripple"
+                                style={{ left: ripple.x, top: ripple.y, width: 0, height: 0 }}
+                                onAnimationEnd={() => setRipples(r => r.filter(item => item.id !== ripple.id))}
+                            />
+                        ))}
+                         <svg className="absolute w-full h-full" viewBox="0 0 100 100">
+                            <circle className="text-white/10" strokeWidth="5" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" />
                             <circle
                                 className="text-primary"
                                 strokeWidth="5"
@@ -66,16 +82,17 @@ export const TasbihDigital: React.FC = () => {
                                     strokeDashoffset: (2 * Math.PI * 45) * (1 - progressPercentage / 100),
                                     transition: 'stroke-dashoffset 0.3s ease',
                                     transform: 'rotate(-90deg)',
-                                    transformOrigin: '50% 50%'
+                                    transformOrigin: '50% 50%',
+                                    filter: 'drop-shadow(0 0 5px hsl(var(--primary)))'
                                 }}
                             />
                         </svg>
-                        <div className="text-center">
+                        <div className="text-center z-10">
                             <p className="text-6xl font-bold">{count}</p>
-                            <p className="text-foreground-light/70">/ {target}</p>
+                            <p className="text-foreground/70">/ {target}</p>
                         </div>
                     </div>
-                     <button onClick={handleReset} className="mt-6 flex items-center gap-2 mx-auto text-sm font-semibold text-foreground-light/80 hover:text-primary">
+                     <button onClick={handleReset} className="mt-6 flex items-center gap-2 mx-auto text-sm font-semibold text-foreground/80 hover:text-primary">
                         <RefreshIcon className="w-4 h-4" /> Set Semula
                     </button>
                 </CardContent>
@@ -88,7 +105,7 @@ export const TasbihDigital: React.FC = () => {
                         <button 
                             key={p.label}
                             onClick={() => handlePresetChange(p.label, p.target)}
-                            className={`px-4 py-2 rounded-full font-semibold transition-colors ${activePreset === p.label ? 'bg-primary text-white' : 'bg-card-light dark:bg-card-dark hover:bg-primary/10'}`}
+                            className={`px-4 py-2 rounded-xl font-semibold transition-colors backdrop-blur-sm border border-white/20 ${activePreset === p.label ? 'bg-primary text-primary-foreground' : 'bg-white/10 hover:bg-white/20'}`}
                         >
                             {p.label}
                         </button>
@@ -98,3 +115,5 @@ export const TasbihDigital: React.FC = () => {
         </div>
     );
 };
+
+export default TasbihDigital;

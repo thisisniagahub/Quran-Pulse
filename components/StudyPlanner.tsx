@@ -4,11 +4,11 @@ import { addStudyPlan, getStudyPlans } from '../services/dbService';
 import type { StudyPlan } from '../types';
 import { Button } from './ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
-// FIX: Replaced non-existent `ListBulletIcon` with `ListIcon`.
 import { SparklesIcon, CalendarIcon, ListIcon, HistoryIcon, SaveIcon } from './icons/Icons';
 import { AgentSelector } from './ui/AgentSelector';
 import { AGENT_DEFINITIONS } from '../lib/agents';
 import type { Agent } from '../lib/agents';
+import { useToast } from '../context/ToastContext';
 
 type PlannerView = 'form' | 'plan' | 'history';
 type AgentId = 'gemini' | 'glm';
@@ -23,6 +23,7 @@ export const StudyPlanner: React.FC = () => {
   const [view, setView] = useState<PlannerView>('form');
   const [savedPlans, setSavedPlans] = useState<StudyPlan[]>([]);
   const [selectedAgentId, setSelectedAgentId] = useState<AgentId>('gemini');
+  const { addToast } = useToast();
 
   const agentSet = AGENT_DEFINITIONS.studyPlanner;
   const activeAgent: Agent = agentSet[selectedAgentId];
@@ -61,7 +62,11 @@ export const StudyPlanner: React.FC = () => {
   const handleSavePlan = async () => {
     if (generatedPlan) {
         await addStudyPlan(generatedPlan);
-        alert("Pelan berjaya disimpan!");
+        addToast({
+            type: 'success',
+            title: 'Pelan Disimpan',
+            description: 'Pelan belajar anda telah disimpan ke dalam sejarah.',
+        });
     }
   };
 
@@ -183,3 +188,5 @@ export const StudyPlanner: React.FC = () => {
     </div>
   );
 };
+
+export default StudyPlanner;

@@ -125,58 +125,6 @@ const Achievements: React.FC = () => {
       unlocked: false,
       reward: { xp: 200, gems: 100 }
     },
-
-    // Social Achievements
-    {
-      id: 'helpful-friend',
-      title: 'Rakan Yang Membantu',
-      description: 'Bantu 5 rakan dengan soalan mereka',
-      category: 'social',
-      icon: <UsersIcon className="w-8 h-8" />,
-      rarity: 'silver',
-      progress: 2,
-      target: 5,
-      unlocked: false,
-      reward: { xp: 150, gems: 75 }
-    },
-    {
-      id: 'community-champion',
-      title: 'Champion Komuniti',
-      description: 'Sertai 10 group study sessions',
-      category: 'social',
-      icon: <UsersIcon className="w-8 h-8" />,
-      rarity: 'gold',
-      progress: 3,
-      target: 10,
-      unlocked: false,
-      reward: { xp: 300, gems: 150, badge: 'Community Hero' }
-    },
-
-    // Special Achievements
-    {
-      id: 'ramadan-2026',
-      title: 'Ramadan Kareem 2026',
-      description: 'Khatam Al-Quran dalam Ramadan',
-      category: 'special',
-      icon: <CrownIcon className="w-8 h-8" />,
-      rarity: 'diamond',
-      progress: 0,
-      target: 30,
-      unlocked: false,
-      reward: { xp: 10000, gems: 2000, badge: 'Ramadan Champion 2026' }
-    },
-    {
-      id: 'early-bird',
-      title: 'Early Bird',
-      description: 'Baca Al-Quran sebelum subuh 10 kali',
-      category: 'special',
-      icon: <StarIcon className="w-8 h-8" />,
-      rarity: 'gold',
-      progress: 4,
-      target: 10,
-      unlocked: false,
-      reward: { xp: 500, gems: 200, badge: 'Dawn Reader' }
-    }
   ];
 
   const categories = [
@@ -188,19 +136,11 @@ const Achievements: React.FC = () => {
   ];
 
   const rarityColors = {
-    bronze: 'from-orange-700 to-orange-900',
-    silver: 'from-gray-400 to-gray-600',
-    gold: 'from-yellow-400 to-yellow-600',
-    platinum: 'from-cyan-400 to-blue-500',
-    diamond: 'from-purple-400 to-pink-500'
-  };
-
-  const rarityBorders = {
-    bronze: 'border-orange-300 dark:border-orange-700',
-    silver: 'border-gray-300 dark:border-gray-600',
-    gold: 'border-yellow-300 dark:border-yellow-600',
-    platinum: 'border-cyan-300 dark:border-cyan-600',
-    diamond: 'border-purple-300 dark:border-purple-600'
+    bronze: 'bg-orange-400',
+    silver: 'bg-gray-400',
+    gold: 'bg-yellow-400',
+    platinum: 'bg-cyan-400',
+    diamond: 'bg-purple-400',
   };
 
   let filteredAchievements = selectedCategory === 'all'
@@ -221,33 +161,30 @@ const Achievements: React.FC = () => {
   return (
     <div className="p-6">
       <div className="max-w-6xl mx-auto">
-        {/* Header & Stats */}
-        <div className="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm p-6 mb-6">
+        <div className="bg-card rounded-2xl p-6 mb-6">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-3xl font-bold flex items-center gap-3">
                 <TrophyIcon className="w-8 h-8 text-yellow-500" />
                 Pencapaian & Lencana
               </h1>
-              <p className="text-foreground-light/80 dark:text-foreground-dark/80 mt-1">Kumpul lencana dengan menyiapkan cabaran!</p>
+              <p className="text-foreground/80 mt-1">Kumpul lencana dengan menyiapkan cabaran!</p>
             </div>
           </div>
-
-          {/* Stats Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/50 dark:to-blue-800/50 rounded-xl p-4 text-center">
+            <div className="bg-blue-200 dark:bg-blue-800/50 rounded-xl p-4 text-center border-2 border-border">
               <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{stats.unlocked}/{stats.total}</div>
               <div className="text-sm mt-1">Pencapaian Dibuka</div>
             </div>
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/50 dark:to-purple-800/50 rounded-xl p-4 text-center">
+            <div className="bg-purple-200 dark:bg-purple-800/50 rounded-xl p-4 text-center border-2 border-border">
               <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">{stats.totalXP}</div>
               <div className="text-sm mt-1">Total XP Diperoleh</div>
             </div>
-            <div className="bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-900/50 dark:to-pink-800/50 rounded-xl p-4 text-center">
+            <div className="bg-pink-200 dark:bg-pink-800/50 rounded-xl p-4 text-center border-2 border-border">
               <div className="text-3xl font-bold text-pink-600 dark:text-pink-400">{stats.totalGems}</div>
               <div className="text-sm mt-1">Total Permata Diperoleh</div>
             </div>
-            <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/50 dark:to-yellow-800/50 rounded-xl p-4 text-center">
+            <div className="bg-yellow-200 dark:bg-yellow-800/50 rounded-xl p-4 text-center border-2 border-border">
               <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
                 {achievements.filter(a => a.unlocked && a.reward.badge).length}
               </div>
@@ -256,8 +193,7 @@ const Achievements: React.FC = () => {
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm p-4 mb-6">
+        <div className="bg-card rounded-2xl p-4 mb-6">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex gap-2 flex-wrap">
               {categories.map(cat => {
@@ -266,10 +202,10 @@ const Achievements: React.FC = () => {
                   <button
                     key={cat.id}
                     onClick={() => setSelectedCategory(cat.id)}
-                    className={`px-4 py-2 rounded-xl font-semibold transition-all flex items-center gap-2 ${
+                    className={`px-4 py-2 rounded-xl font-semibold transition-all flex items-center gap-2 border-2 border-border ${
                       selectedCategory === cat.id
-                        ? 'bg-yellow-500 text-white shadow-md'
-                        : 'bg-background-light dark:bg-background-dark text-gray-700 dark:text-gray-300 hover:bg-background-light/80 dark:hover:bg-background-dark/80'
+                        ? 'bg-primary text-primary-foreground shadow-[2px_2px_0px_hsl(var(--border))]'
+                        : 'bg-background text-foreground hover:bg-foreground/10'
                     }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -280,10 +216,10 @@ const Achievements: React.FC = () => {
             </div>
             <button
               onClick={() => setShowUnlockedOnly(!showUnlockedOnly)}
-              className={`px-4 py-2 rounded-xl font-semibold transition-all ${
+               className={`px-4 py-2 rounded-xl font-semibold transition-all border-2 border-border ${
                 showUnlockedOnly
                   ? 'bg-green-500 text-white'
-                  : 'bg-background-light dark:bg-background-dark text-gray-700 dark:text-gray-300 hover:bg-background-light/80 dark:hover:bg-background-dark/80'
+                  : 'bg-background text-foreground hover:bg-foreground/10'
               }`}
             >
               {showUnlockedOnly ? '✓ Dibuka Sahaja' : 'Tunjuk Semua'}
@@ -291,44 +227,32 @@ const Achievements: React.FC = () => {
           </div>
         </div>
 
-        {/* Achievements Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredAchievements.map(achievement => (
             <div
               key={achievement.id}
-              className={`bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border-2 ${rarityBorders[achievement.rarity]} overflow-hidden ${
-                achievement.unlocked ? '' : 'opacity-75'
-              } hover:shadow-lg transition-all`}
+              className={`bg-card rounded-2xl border-2 border-border overflow-hidden ${
+                achievement.unlocked ? '' : 'opacity-75 grayscale'
+              } transition-all`}
             >
-              {/* Rarity Banner */}
-              <div className={`bg-gradient-to-r ${rarityColors[achievement.rarity]} py-1 text-center`}>
-                <span className="text-white text-xs font-bold uppercase tracking-wider">
+              <div className={`${rarityColors[achievement.rarity]} py-1 text-center border-b-2 border-border`}>
+                <span className="text-black text-xs font-bold uppercase tracking-wider">
                   {achievement.rarity}
                 </span>
               </div>
 
               <div className="p-6">
-                {/* Icon */}
                 <div className="relative mb-4">
-                  <div className={`bg-gradient-to-br ${rarityColors[achievement.rarity]} p-4 rounded-xl inline-block ${
-                    achievement.unlocked ? '' : 'opacity-50'
-                  }`}>
-                    <div className="text-white">
+                  <div className={`${rarityColors[achievement.rarity]} p-4 rounded-xl inline-block border-2 border-border`}>
+                    <div className="text-black">
                       {achievement.unlocked ? achievement.icon : <LockIcon className="w-8 h-8" />}
                     </div>
                   </div>
-                  {achievement.unlocked && (
-                    <div className="absolute -top-2 -right-2 bg-green-500 rounded-full p-1 border-2 border-white dark:border-card-dark">
-                      <CheckCircleIcon className="w-6 h-6 text-white" />
-                    </div>
-                  )}
                 </div>
 
-                {/* Details */}
                 <h3 className="text-xl font-bold mb-2">{achievement.title}</h3>
                 <p className="text-sm mb-4 h-10">{achievement.description}</p>
 
-                {/* Progress */}
                 {!achievement.unlocked && (
                   <div className="mb-4">
                     <div className="flex items-center justify-between mb-1">
@@ -337,16 +261,15 @@ const Achievements: React.FC = () => {
                         {achievement.progress}/{achievement.target}
                       </span>
                     </div>
-                    <div className="h-2 bg-background-light dark:bg-background-dark rounded-full overflow-hidden">
+                    <div className="h-3 bg-background border-2 border-border rounded-full p-0.5 overflow-hidden">
                       <div
-                        className={`h-full bg-gradient-to-r ${rarityColors[achievement.rarity]} transition-all duration-500`}
+                        className={`${rarityColors[achievement.rarity]} h-full rounded-sm transition-all duration-500`}
                         style={{ width: `${(achievement.progress / achievement.target) * 100}%` }}
                       />
                     </div>
                   </div>
                 )}
 
-                {/* Rewards */}
                 <div className="flex items-center gap-4 text-sm mt-4">
                   <div className="flex items-center gap-1">
                     <StarIcon className="w-4 h-4 text-yellow-500" />
@@ -358,14 +281,6 @@ const Achievements: React.FC = () => {
                   </div>
                 </div>
 
-                {achievement.reward.badge && (
-                  <div className="mt-3 px-3 py-1 bg-yellow-100 dark:bg-yellow-500/20 rounded-lg text-center">
-                    <span className="text-xs font-bold text-yellow-700 dark:text-yellow-400">
-                      🏆 {achievement.reward.badge}
-                    </span>
-                  </div>
-                )}
-
                 {achievement.unlockedDate && (
                   <div className="mt-3 text-xs text-gray-500 text-center">
                     Dibuka: {achievement.unlockedDate}
@@ -375,13 +290,6 @@ const Achievements: React.FC = () => {
             </div>
           ))}
         </div>
-
-        {filteredAchievements.length === 0 && (
-          <div className="text-center py-12 col-span-full">
-            <TrophyIcon className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-            <p>Tiada pencapaian ditemui dalam kategori ini</p>
-          </div>
-        )}
       </div>
     </div>
   );

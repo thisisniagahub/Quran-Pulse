@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import type { PracticeMaterial, TajweedRule, TajweedSession } from '../types';
 import { IqraBookView } from './IqraBookView';
-import { tajweedRulesData } from '../data/tajweedRulesData';
+import { getCache, setCache } from '../services/dbService';
 import { TajweedRuleInfo } from './TajweedRuleInfo';
 import { Button } from './ui/Button';
-// FIX: Replaced non-existent `ListBulletIcon` with `ListIcon`.
 import { BookOpenIcon, SparklesIcon, ListIcon, HistoryIcon } from './icons/Icons';
 import { getTajweedSessions } from '../services/dbService';
 import { AgentSelector } from './ui/AgentSelector';
 import { AGENT_DEFINITIONS } from '../lib/agents';
+import { EmptyState } from './ui/EmptyState';
+import { Skeleton } from './ui/Skeleton';
 
 type SelectionMode = 'iqra' | 'rules' | 'history';
 type AgentId = 'gemini' | 'glm';
@@ -19,12 +20,57 @@ interface TajweedSelectorProps {
     onSelectAgent: (agentId: AgentId) => void;
 }
 
+const RulesSkeleton = () => (
+    <div className="space-y-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="bg-card-light dark:bg-card-dark p-4 rounded-lg shadow-sm">
+                <div className="flex justify-between items-center">
+                    <Skeleton className="h-6 w-1/3" />
+                    <Skeleton className="h-8 w-16" />
+                </div>
+                <Skeleton className="h-4 w-full mt-2" />
+                <div className="mt-4 space-y-2">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                </div>
+            </div>
+        ))}
+    </div>
+);
+
+
 export const TajweedSelector: React.FC<TajweedSelectorProps> = ({ onSelectMaterial, selectedAgentId, onSelectAgent }) => {
     const [mode, setMode] = useState<SelectionMode>('iqra');
     const [selectedRule, setSelectedRule] = useState<TajweedRule | null>(null);
     const [history, setHistory] = useState<TajweedSession[]>([]);
+    const [tajweedRulesData, setTajweedRulesData] = useState<TajweedRule[]>([]);
+    const [isLoadingRules, setIsLoadingRules] = useState(true);
 
     const agentSet = AGENT_DEFINITIONS.tajweedFeedback;
+
+    useEffect(() => {
+        const loadRules = async () => {
+            if (mode === 'rules' && tajweedRulesData.length === 0) {
+                setIsLoadingRules(true);
+                try {
+                    const cachedData = await getCache('tajweedRulesData');
+                    if (cachedData) {
+                        setTajweedRulesData(cachedData);
+                    } else {
+                        const response = await fetch('/data/tajweedRulesData.json');
+                        const data = await response.json();
+                        setTajweedRulesData(data);
+                        await setCache('tajweedRulesData', data);
+                    }
+                } catch (error) {
+                    console.error("Failed to load Tajweed rules", error);
+                } finally {
+                    setIsLoadingRules(false);
+                }
+            }
+        };
+        loadRules();
+    }, [mode, tajweedRulesData]);
 
     useEffect(() => {
         if (mode === 'history') {
@@ -65,6 +111,9 @@ export const TajweedSelector: React.FC<TajweedSelectorProps> = ({ onSelectMateri
             case 'iqra':
                 return <IqraBookView onSelectMaterial={onSelectMaterial} onBack={() => {}} />;
             case 'rules':
+                if (isLoadingRules) {
+                    return <RulesSkeleton />;
+                }
                 return (
                     <div className="space-y-4">
                         {tajweedRulesData.map(rule => (
@@ -88,7 +137,12 @@ export const TajweedSelector: React.FC<TajweedSelectorProps> = ({ onSelectMateri
                 );
              case 'history':
                 if (history.length === 0) {
-                    return <div className="text-center p-8 text-foreground-light/70">Tiada sejarah latihan ditemui.</div>;
+                    return (
+                        <EmptyState
+                            title="Tiada Sejarah Latihan"
+                            description="Sesi latihan Tajwid anda yang telah selesai akan muncul di sini."
+                        />
+                    );
                 }
                 return (
                      <div className="space-y-4">
@@ -139,3 +193,5 @@ export const TajweedSelector: React.FC<TajweedSelectorProps> = ({ onSelectMateri
         </div>
     );
 };
+
+export default TajweedSelector;

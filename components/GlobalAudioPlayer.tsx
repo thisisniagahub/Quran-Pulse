@@ -44,8 +44,8 @@ export const GlobalAudioPlayer: React.FC = () => {
             </Button>
 
             <div className="flex-1 flex flex-col justify-center min-w-0">
-                <p className="text-sm font-semibold truncate text-foreground-light dark:text-foreground-dark">{track.title}</p>
-                 <div className="hidden md:flex items-center gap-2 text-xs text-foreground-light/70 dark:text-foreground-dark/70">
+                <p className="text-sm font-semibold truncate text-foreground">{track.title}</p>
+                 <div className="hidden md:flex items-center gap-2 text-xs text-foreground/70">
                     <span>{formatTime(currentTime)}</span>
                     <input
                         type="range"
@@ -53,7 +53,7 @@ export const GlobalAudioPlayer: React.FC = () => {
                         max={duration || 0}
                         value={currentTime}
                         onChange={handleSeek}
-                        className="w-full h-1 bg-background-light dark:bg-background-dark rounded-lg appearance-none cursor-pointer accent-primary"
+                        className="w-full h-2 bg-background rounded-lg appearance-none cursor-pointer accent-primary border-2 border-border"
                     />
                     <span>{formatTime(duration)}</span>
                 </div>

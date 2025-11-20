@@ -11,7 +11,7 @@ const duas = [
     },
     {
         title: "Doa Selepas Makan",
-        arabic: "الْحَمْدُ لِلَّهِ الَّذِي أَطْعَمَنَا وَسَقَانَا وَجَعَلَنَا مِنَ الْمُסְלִמِينَ",
+        arabic: "الْحَمْدُ لِلَّهِ الَّذِي أَطْعَمَنَا وَسَقَانَا وَجَعَلَنَا مِنَ الْمُسْلِمِينَ",
         translation: "Segala puji bagi Allah yang telah memberi kami makan dan minum, serta menjadikan kami dari kalangan orang-orang Islam.",
         count: 1
     },
@@ -42,27 +42,27 @@ const DoaCard: React.FC<{ doa: typeof duas[0] }> = ({ doa }) => {
     const isCompleted = currentCount >= doa.count;
 
     return (
-        <div className={`bg-card-light dark:bg-card-dark p-6 rounded-xl shadow-sm transition-all duration-300 ${isCompleted ? 'border-2 border-accent' : ''}`}>
-            <h3 className="font-bold text-lg text-primary-light dark:text-primary-dark">{doa.title}</h3>
+        <div className={`bg-card p-6 rounded-xl shadow-[4px_4px_0px_hsl(var(--border))] border-2 border-border transition-all duration-300 ${isCompleted ? 'border-accent' : ''}`}>
+            <h3 className="font-bold text-lg text-primary">{doa.title}</h3>
             <p className="font-arabic text-2xl my-4 text-right">{doa.arabic}</p>
-            <p className="text-sm text-foreground-light/80 italic">"{doa.translation}"</p>
+            <p className="text-sm text-foreground/80 italic">"{doa.translation}"</p>
             
             <div className="mt-6 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <button onClick={() => resetCount(doa.title)} className="p-2 rounded-full hover:bg-white/10"><RefreshIcon /></button>
-                    <button onClick={() => decrementCount(doa.title)} className="p-2 rounded-full hover:bg-white/10"><MinusIcon /></button>
+                    <button onClick={() => resetCount(doa.title)} className="p-2 rounded-full hover:bg-foreground/10"><RefreshIcon /></button>
+                    <button onClick={() => decrementCount(doa.title)} className="p-2 rounded-full hover:bg-foreground/10"><MinusIcon /></button>
                 </div>
                 <div 
                     onClick={() => incrementCount(doa.title, doa.count)}
                     className="flex-1 text-center mx-4 cursor-pointer"
                 >
                     <span className="text-2xl font-bold">{currentCount}</span>
-                    <span className="text-sm text-foreground-light/70"> / {doa.count}</span>
+                    <span className="text-sm text-foreground/70"> / {doa.count}</span>
                 </div>
-                <button onClick={() => incrementCount(doa.title, doa.count)} className="p-2 rounded-full hover:bg-white/10"><PlusIcon /></button>
+                <button onClick={() => incrementCount(doa.title, doa.count)} className="p-2 rounded-full hover:bg-foreground/10"><PlusIcon /></button>
             </div>
-             <div className="w-full bg-black/10 rounded-full h-2.5 mt-4">
-              <div className="bg-primary-light dark:bg-primary-dark h-2.5 rounded-full" style={{ width: `${(currentCount / doa.count) * 100}%` }}></div>
+             <div className="w-full bg-foreground/10 rounded-full h-2.5 mt-4 p-0.5 border-2 border-border">
+              <div className="bg-primary h-full rounded-sm" style={{ width: `${(currentCount / doa.count) * 100}%` }}></div>
             </div>
         </div>
     );
@@ -73,8 +73,8 @@ export const DoaList: React.FC = () => {
     return (
         <div className="max-w-2xl mx-auto">
             <div className="text-center mb-8">
-                <h2 className="text-3xl font-bold text-primary-light dark:text-primary-dark mb-2">Doa & Zikir Harian</h2>
-                <p className="text-foreground-light/80">Koleksi doa masnun dan zikir harian untuk amalan anda.</p>
+                <h2 className="text-3xl font-bold text-primary mb-2">Doa & Zikir Harian</h2>
+                <p className="text-foreground/80">Koleksi doa masnun dan zikir harian untuk amalan anda.</p>
             </div>
             <div className="space-y-6">
                 {duas.map((doa, index) => (
@@ -84,3 +84,5 @@ export const DoaList: React.FC = () => {
         </div>
     );
 };
+
+export default DoaList;

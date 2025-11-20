@@ -1,24 +1,39 @@
-# 🕌 QuranPulse: Al-Quran SuperApp untuk Malaysia
 
-QuranPulse ialah sebuah aplikasi super Al-Quran yang canggih dan boleh dipercayai, direka khusus untuk komuniti Muslim di Malaysia. Aplikasi ini menggabungkan alatan ibadah harian yang penting dengan ciri-ciri pembelajaran termaju yang dikuasakan oleh Google Gemini, serta sistem gamifikasi yang mendalam untuk motivasi, semuanya dibentangkan dalam antara muka yang dioptimumkan untuk peranti mudah alih (*mobile-first*), beretika, dan mesra pengguna.
+<div align="center">
 
-Aplikasi ini dibina dengan prestasi sebagai keutamaan, menggunakan teknik moden seperti pemisahan kod (*code splitting*), pemuatan data malas (*lazy loading*), dan strategi cache-first untuk memastikan pengalaman yang pantas dan responsif, walaupun dalam keadaan luar talian.
+# 🕌 QuranPulse: SuperApp Islam Komprehensif untuk Malaysia
+
+**Visi:** Menjadi teman harian yang memperkasakan pertumbuhan rohani dan intelektual setiap Muslim di Malaysia, dengan menggabungkan alatan ibadah teras dengan teknologi AI termaju dalam satu pengalaman yang lancar, peribadi, dan memotivasi.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![React](https://img.shields.io/badge/React-19-blue.svg)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue.svg)](https://www.typescriptlang.org/)
 [![Google Gemini](https://img.shields.io/badge/Google-Gemini-blueviolet.svg)](https://ai.google.dev/)
+[![Vercel](https://img.shields.io/badge/Hosted%20on-Vercel-black.svg)](https://vercel.com/)
+
+</div>
+
+---
+
+**QuranPulse** ialah sebuah SuperApp Islam yang canggih, beretika, dan boleh dipercayai, direka khusus untuk komuniti Muslim di Malaysia. Aplikasi ini bukan sekadar koleksi ciri, tetapi sebuah penyelesaian holistik yang direka dengan teliti untuk menangani cabaran sebenar yang dihadapi oleh Muslim moden. Ia menyatukan ibadah, ilmu, dan motivasi rohani dalam satu pengalaman digital moden.
+
+Aplikasi ini dibina dengan prestasi sebagai keutamaan, menggunakan teknik moden seperti pemisahan kod (*code splitting*), pemuatan data malas (*lazy loading*), dan strategi *cache-first* untuk memastikan pengalaman yang pantas dan responsif, walaupun dalam keadaan luar talian.
 
 ---
 
 ## 📖 Kandungan
 
 - [Ciri-Ciri Utama](#-ciri-ciri-utama)
-- [Timbunan Teknologi](#-timbunan-teknologi-technology-stack)
-- [Struktur Projek](#-struktur-projek)
-- [Pengoptimuman Prestasi](#-pengoptimuman-prestasi)
-- [Konfigurasi](#-konfigurasi)
-- [Etika & Sumber Data](#-etika--sumber-data)
+  - [Ibadah Harian](#-ibadah-harian)
+  - [Alatan Pembelajaran AI (PRO)](#-alatan-pembelajaran-ai-pro)
+  - [Gamifikasi & Motivasi](#-gamifikasi--motivasi)
+- [Timbunan Teknologi & Rasional](#-timbunan-teknologi--rasional)
+- [Prinsip Senibina](#-prinsip-senibina)
+- [Struktur Projek Lengkap](#-struktur-projek-lengkap)
+- [Bagaimana untuk Bermula (Getting Started)](#-bagaimana-untuk-bermula-getting-started)
+- [Titik Akhir API (Backend Endpoints)](#-titik-akhir-api-backend-endpoints)
+- [Etika & Pematuhan Syariah](#-etika--pembetuhan-syariah)
+- [Hala Tuju Masa Depan](#-hala-tuju-masa-depan)
 - [License](#-license)
 - [Credits](#-credits)
 
@@ -26,187 +41,200 @@ Aplikasi ini dibina dengan prestasi sebagai keutamaan, menggunakan teknik moden 
 
 ## ✨ Ciri-Ciri Utama
 
-QuranPulse dibina dengan set ciri yang kaya untuk membantu pengguna dalam perjalanan rohani dan pembelajaran mereka.
+### 🕋 Ibadah Harian
 
-### 🕋 Keperluan Ibadah Harian
+Alatan teras untuk amalan harian, diperhalusi dengan pengalaman pengguna yang moden.
 
-*   **Pembaca Al-Quran:** Baca Al-Quran dengan teks Uthmani yang jelas. Dilengkapi dengan **Audio Murattal** daripada qari terkenal (Mishary Rashid Alafasy) dan ciri autoplay.
-*   **Terjemahan Pelbagai Bahasa:** Terjemahan dalam Bahasa Melayu (Tafsir Pimpinan Ar-Rahman), Bahasa Inggeris (Sahih International), dan transliterasi Rumi untuk membantu sebutan.
-*   **Waktu Solat & Qiblat:** Dapatkan waktu solat yang tepat untuk seluruh Malaysia dan cari arah Qiblat dengan kompas bersepadu.
-*   **Penjejak Ibadah & Doa Harian:** Jejaki amalan harian anda dan akses koleksi doa masnun dan zikir yang dilengkapi dengan pembilang digital interaktif.
-*   **Kandungan Islamik Kaya:** Terokai **Asmaul Husna**, **Tafsir**, **Kisah Nabi**, **Panduan Ibadah**, **Tasbih Digital**, **Sirah Nabawiyah**, **Kalendar Hijriyah**, **Artikel Islami**, dan **Penyemak Halal**.
+*   **Pembaca Al-Quran:** Teks Uthmani yang jelas dengan **Audio Murattal**, ciri *autoplay*, dan **animasi sorotan ayat** (`highlight-flash`) yang sedang dimainkan.
+*   **Terjemahan Pelbagai Bahasa:** Terjemahan Melayu (Tafsir Pimpinan Ar-Rahman), Inggeris (Sahih International), dan transliterasi Rumi dengan suis `on/off` yang mudah.
+*   **Waktu Solat & Peringatan 360°:** Waktu solat tepat untuk seluruh Malaysia dengan **peringatan melalui WhatsApp (eksperimental)** yang boleh disesuaikan.
+*   **Arah Qiblat Pintar:** Kompas Qiblat bersepadu dengan **panduan kalibrasi** gerakan "angka lapan" untuk ketepatan maksimum.
+*   **Penjejak Ibadah Moden:** Jejaki amalan harian dengan antara muka **suis (`Switch`) yang moden dan responsif**.
+*   **Tasbih Digital Interaktif:** Pembilang zikir digital dengan **maklum balas getaran dan animasi riak (`ripple`)** pada setiap sentuhan.
+*   **Kandungan Islamik Kaya:** Terokai **Asmaul Husna**, **Kisah Nabi**, **Panduan Ibadah**, **Sirah Nabawiyah**, dan banyak lagi dengan **animasi `fade-in-up` berperingkat** untuk pengalaman visual yang lancar.
 
-### 🧠 Alatan Pembelajaran Dikuasakan AI (PRO)
+### 🧠 Alatan Pembelajaran AI (PRO)
 
-*   **Sobat AI Cerdas:** Agen AI serba boleh yang boleh menavigasi aplikasi, menjawab soalan, dan menjana imej untuk membantu pembelajaran.
-*   **Tanya Ustaz:** Mod soal jawab formal yang menjawab soalan feqah secara eksklusif daripada sumber berautoriti Malaysia.
-*   **Tutor Tajwid AI:** Dapatkan maklum balas masa nyata tentang bacaan Al-Quran atau Iqra' anda menggunakan analisis audio AI.
-*   **Pelan Pembelajaran AI:** Rangka jadual pembelajaran atau hafazan yang diperibadikan berdasarkan matlamat anda.
-*   **Sembang Suara AI:** Sesi perbualan suara interaktif dengan AI dalam Bahasa Melayu untuk latihan soal jawab.
-*   **Penulis Jawi AI:** Tukar teks Rumi ke tulisan Jawi dengan serta-merta.
-*   **Penjelasan Ayat AI:** Dapatkan penjelasan ringkas dan mudah difahami untuk mana-mana ayat Al-Quran dengan satu klik.
+Dikuasakan oleh Google Gemini untuk pengalaman pembelajaran yang diperibadikan dan interaktif.
+
+*   **Sobat AI Cerdas:** Agen AI serba boleh untuk menjawab soalan umum dan membantu pembelajaran.
+*   **Tanya Ustaz:** Dapatkan jawapan feqah berstruktur yang merujuk kepada sumber berautoriti Malaysia.
+*   **Tutor Tajwid AI:** Dapatkan maklum balas masa nyata tentang bacaan Al-Quran atau Iqra' anda.
+*   **Pelan Pembelajaran AI:** Rangka jadual pembelajaran atau hafazan yang diperibadikan.
+*   **Sembang Suara AI:** Sesi perbualan suara interaktif dengan AI dalam Bahasa Melayu.
+*   **Penulis Jawi AI:** Tukar teks Rumi ke Jawi dengan serta-merta.
+*   **Editor Imej AI (Baru):** Sunting imej sedia ada dengan memberikan arahan teks. Tukar latar belakang, tambah objek, dan banyak lagi.
 
 ### 🏆 Gamifikasi & Motivasi
 
-*   **Laluan Pembelajaran (`LearningPath.tsx`):** Ikuti kurikulum berstruktur dari asas Iqra' hingga ke tajwid lanjutan dan hafazan surah dalam bentuk peta yang interaktif.
-*   **Matlamat Harian (`DailyGoals.tsx`):** Tetapkan sasaran XP harian dan selesaikan matlamat khusus untuk mendapatkan ganjaran.
-*   **Cabaran Mingguan & Bulanan:** Sertai cabaran jangka panjang seperti "Marathon Mingguan" atau "Hafazan Juz 30" untuk hadiah yang lebih besar.
-*   **Papan Markah (`Leaderboard.tsx`):** Bersaing dengan rakan, pengguna tempatan (Malaysia), dan global. Naik atau turun liga berdasarkan prestasi mingguan anda.
-*   **Pencapaian & Lencana (`Achievements.tsx`):** Buka puluhan lencana unik dengan melengkapkan pelbagai tugasan merentasi kategori seperti pembelajaran, sosial, dan peristiwa istimewa.
-*   **Kedai Permata (`GemShop.tsx`):** Gunakan permata yang diperoleh untuk membeli item dalam permainan seperti *power-up* (cth., Streak Freeze), item kosmetik, atau akses premium.
-*   **Pembelian Dalam Aplikasi (Simulasi):** Alami aliran pembelian pek permata melalui modal pembayaran yang berinteraksi dengan backend simulasi, meniru gerbang pembayaran seperti "Chip-In".
+Mengubah pembelajaran pasif menjadi satu perjalanan yang aktif, menarik, dan memuaskan.
+
+*   **Laluan Pembelajaran (`LearningPath.tsx`):** Ikuti kurikulum berstruktur dari asas Iqra' hingga ke tajwid lanjutan.
+*   **Matlamat Harian & Cabaran (`DailyGoals.tsx`):** Selesaikan tugasan untuk mendapatkan ganjaran XP dan permata.
+*   **Papan Markah Dinamik (`Leaderboard.tsx`):** Bersaing dalam liga mingguan dengan **reka bentuk podium dinamik** untuk 3 teratas.
+*   **Pencapaian & Lencana (`Achievements.tsx`):** Buka puluhan lencana unik untuk meraikan setiap pencapaian.
+*   **Sistem "Share the Barakah":** Kongsi pencapaian, petikan, atau ayat ke media sosial dengan kad visual yang dijana secara automatik untuk mendapatkan mata ganjaran.
 
 ---
 
-## 🚀 Timbunan Teknologi (Technology Stack)
+## 🚀 Timbunan Teknologi & Rasional
 
-### Frontend
-*   **Framework:** React 19 (dimuat melalui CDN menggunakan *import maps*)
-*   **Bahasa:** TypeScript
-*   **Styling:** Tailwind CSS (dikonfigurasi secara terus dalam HTML)
-*   **Reka Bentuk:** *Mobile-First Responsive Design*, dengan navigasi bawah untuk peranti mudah alih dan bar sisi untuk desktop.
-*   **State Management:** React Context API & Hooks (`useState`, `useEffect`, `useContext`)
-*   **Icons:** Komponen SVG kustom dalam `components/icons/Icons.tsx`
-
-### Backend (Pelayan Proksi)
-*   **Framework:** Express.js
-*   **Tujuan:** Mengurus kunci API dengan selamat, mengendalikan permintaan ke API Gemini, dan menyediakan titik akhir untuk logik aplikasi seperti simulasi pembayaran.
-
-### Kecerdasan Buatan (AI)
-*   **Provider:** Google Gemini API (`@google/genai`)
-*   **Model Digunakan:** `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-image`, `gemini-2.5-flash-native-audio-preview-09-2025` (Live API), `gemini-2.5-flash-preview-tts`.
-
-### API & Sumber Data
-*   **Teks Al-Quran & Terjemahan:** `api.alquran.cloud`
-*   **Audio Bacaan:** `everyayah.com`
-*   **Waktu Solat:** `api.aladhan.com` (sebagai proksi untuk data e-Solat JAKIM)
-*   **Data Statik:** Data Iqra', Asmaul Husna, dan senarai Surah disimpan secara tempatan untuk prestasi optimum.
-
-### Storan & API Pelayar
-*   **IndexedDB:** Untuk *caching* data aplikasi (sembang, pelan belajar, sesi tajwid, penjelasan ayat).
-*   **Local Storage:** Untuk menyimpan progres ringkas seperti penjejak ibadah dan kiraan zikir.
-*   **Geolocation API:** Untuk Qiblat & Waktu Solat.
-*   **Media Devices API (Mikrofon):** Untuk ciri-ciri audio interaktif.
-*   **Web Audio API:** Untuk pemprosesan dan main balik audio.
+| Komponen            | Teknologi                                        | Rasional                                                                                                                              |
+| ------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **Frontend**        | React 19, TypeScript, Tailwind CSS             | Pustaka moden, selamat-jenis, dan cekap untuk membina antara muka pengguna yang responsif tanpa langkah binaan (*no build-step*). |
+| **Pemuatan Modul**  | Import Maps (`index.html`)                       | Membolehkan resolusi modul seperti `react` secara terus dalam pelayar, mengelakkan keperluan untuk *bundler* seperti Webpack atau Vite.  |
+| **Backend (Proksi)**| Express.js di Vercel Serverless Functions        | Menyediakan lapisan keselamatan yang ringan dan boleh skala untuk mengurus kunci API dan berkomunikasi dengan perkhidmatan luaran.     |
+| **AI**              | Google Gemini API (`@google/genai`)              | Model AI yang berkuasa untuk pelbagai tugas (teks, audio, imej) dengan sokongan untuk arahan sistem yang terperinci.                |
+| **Storan Klien**    | IndexedDB & LocalStorage                         | **IndexedDB** untuk *caching* data besar (surah, tafsir, sejarah sembang) bagi keupayaan luar talian. **LocalStorage** untuk tetapan ringkas. |
 
 ---
 
-## 📂 Struktur Projek
+## 🏛️ Prinsip Senibina
 
-Struktur projek direka untuk menjadi modular dan mudah diselenggara, dengan pemisahan kebimbangan yang jelas.
+Senibina aplikasi ini direka untuk keselamatan, prestasi, dan kebolehselenggaraan.
+
+1.  **Proksi API Selamat (BFF):** Semua panggilan ke API Gemini disalurkan melalui pelayan proksi `api/index.ts`. Ini memastikan kunci API **tidak pernah** terdedah di bahagian klien.
+2.  **Penghalaan Berasaskan Keadaan (*State-Driven Routing*):** Aplikasi ini menggunakan pembolehubah keadaan (`activeView` dalam `App.tsx`) untuk mengawal komponen mana yang dipaparkan, mengelakkan kerumitan pustaka penghalaan luaran.
+3.  **Prestasi Diutamakan:**
+    *   **Pemisahan Kod:** `React.lazy()` digunakan untuk memuatkan komponen utama hanya apabila diperlukan.
+    *   **Caching Agresif:** Data yang kerap diakses disimpan dalam IndexedDB untuk mengurangkan panggilan rangkaian dan membolehkan fungsi luar talian.
+    *   **Memoization:** `React.memo` digunakan untuk komponen senarai seperti `AyahView` bagi mengelakkan render semula yang tidak perlu.
+
+Untuk butiran lanjut, sila rujuk [architecture.md](./architecture.md).
+
+---
+
+## 📂 Struktur Projek Lengkap
 
 ```
 quranpulse/
+├── api/
+│   └── index.ts               # Pelayan Proksi Express (Serverless Function)
 ├── public/
-│   └── data/
-│       └── iqraData.json      # Data statik Iqra' (dioptimumkan)
-├── server/
-│   └── src/
-│       ├── routes/
-│       │   └── api.ts         # Pengendali laluan untuk proksi Gemini
-│       └── index.ts           # Titik masukan pelayan Express
+│   ├── data/                  # Fail JSON untuk data statik besar (Iqra', Kisah Nabi, dll.)
+│   └── images/
+│       └── islamic-pattern.png
 ├── src/
 │   ├── components/
-│   │   ├── ui/                  # Komponen UI boleh guna semula (Button, Card)
-│   │   ├── icons/               # Komponen ikon SVG
-│   │   ├── Achievements.tsx     # Ciri Pencapaian & Lencana
-│   │   ├── AICompanion.tsx      # Ciri utama Sobat AI Cerdas
-│   │   ├── BottomNavBar.tsx     # Navigasi bawah untuk mudah alih
-│   │   ├── DailyGoals.tsx       # Ciri Matlamat Harian
-│   │   ├── GemShop.tsx          # Ciri Kedai Permata
-│   │   ├── GlobalAudioPlayer.tsx# Pemain audio global di header
-│   │   ├── IqraBookView.tsx     # Antara muka pembelajaran Iqra'
-│   │   ├── LearningPath.tsx     # Ciri Laluan Pembelajaran
-│   │   ├── Leaderboard.tsx      # Ciri Papan Markah
-│   │   ├── LiveConversation.tsx # Ciri Sembang Suara AI
-│   │   ├── PurchaseGemsModal.tsx# Modal simulasi pembelian permata
-│   │   ├── QuranReader.tsx      # Komponen utama pembaca Al-Quran
-│   │   ├── Sidebar.tsx          # Bar sisi navigasi untuk desktop
-│   │   ├── TajweedTutor.tsx     # Komponen induk untuk Tutor Tajwid
-│   │   └── ...                  # Komponen ciri lain
-│   │
-│   ├── context/
-│   │   └── AudioContext.tsx     # Pengurusan state audio global
-│   │
-│   ├── data/
-│   │   ├── asmaulHusnaData.ts   # Data statik untuk Asmaul Husna
-│   │   └── ...
-│   │
-│   ├── hooks/
-│   │   ├── useAutoplay.ts       # Logik untuk ciri autoplay Al-Quran
-│   │   ├── useQuranData.ts      # Logik untuk memuatkan data surah
-│   │   └── useSpeechRecognition.ts # Logik pengecaman pertuturan
-│   │
+│   │   ├── ui/                # Komponen UI boleh guna semula (Button, Card, Switch, dll.)
+│   │   ├── icons/             # Komponen ikon SVG
+│   │   ├── *Feature*.tsx      # Komponen ciri utama (QuranReader, PrayerTimes, dll.)
+│   ├── context/               # Penyedia konteks React (Audio, Toast, dll.)
+│   ├── data/                  # Data statik kecil yang dibundel
+│   ├── hooks/                 # Cangkuk React kustom (useQuranData, useAutoplay, dll.)
+│   ├── lib/
+│   │   ├── agents.ts          # Definisi personaliti dan arahan sistem untuk AI
+│   │   └── utils.ts           # Fungsi utiliti umum (cth., cn)
 │   ├── services/
-│   │   ├── dbService.ts         # Interaksi dengan IndexedDB (cache)
-│   │   ├── geminiService.ts     # Klien API yang berinteraksi dengan pelayan proksi
-│   │   └── ...
-│   │
-│   ├── App.tsx                  # Komponen akar, menguruskan paparan aktif & layout
-│   ├── index.tsx                # Titik masukan aplikasi React
-│   └── types.ts                 # Definisi jenis TypeScript global
-│
-├── index.html                   # Fail HTML utama dengan import maps & Tailwind CSS
-└── README.md                    # Dokumentasi ini
+│   │   ├── dbService.ts       # Abstraksi untuk interaksi IndexedDB
+│   │   └── geminiService.ts   # Klien untuk berkomunikasi dengan proksi backend
+│   ├── types.ts               # Definisi jenis TypeScript global
+│   ├── App.tsx                # Komponen akar aplikasi (susun atur, penghalaan)
+│   └── index.tsx              # Titik masuk aplikasi React
+├── .env.example
+├── architecture.md
+├── index.html
+├── metadata.json
+├── package.json
+├── PROMPT.md
+├── README.md                  # Fail ini
+├── tsconfig.json
+└── vercel.json
 ```
 
 ---
 
-## ⚡ Pengoptimuman Prestasi
+## 🚀 Bagaimana untuk Bermula (Getting Started)
 
-Aplikasi ini telah dioptimumkan secara menyeluruh untuk kelajuan dan kecekapan.
+Sila ikuti langkah-langkah ini untuk menjalankan projek secara tempatan.
 
-- **Pemisahan Kod (*Code Splitting*):** Komponen-komponen utama dimuat secara dinamik menggunakan `React.lazy()` dan `Suspense`, mengurangkan saiz muatan awal dengan ketara.
-- **Caching Lanjutan:** Data penting seperti penjelasan ayat dan kandungan Iqra' disimpan dalam IndexedDB untuk akses luar talian dan pemuatan segera pada lawatan seterusnya.
-- **Memoization:** Komponen dalam senarai panjang seperti `AyahView` menggunakan `React.memo` untuk mengelakkan render semula yang tidak perlu.
-- **Struktur Hook Kustom:** Logik kompleks diasingkan ke dalam cangkuk (*hooks*) kustom seperti `useQuranData` dan `useAutoplay` untuk kod yang lebih bersih dan boleh diguna semula.
-- **Pelayan Proksi:** Semua panggilan ke API Gemini disalurkan melalui pelayan proksi Express.js, memastikan kunci API tidak terdedah di bahagian klien.
+### Prasyarat
+-   Node.js (versi 18 atau lebih baru)
+-   npm atau pnpm
+
+### Pemasangan
+1.  **Klon repositori ini:**
+    ```bash
+    git clone https://github.com/your-username/quranpulse.git
+    cd quranpulse
+    ```
+
+2.  **Pasang kebergantungan:**
+    ```bash
+    npm install
+    ```
+
+3.  **Konfigurasi Pembolehubah Persekitaran:**
+    -   Dapatkan kunci API Google Gemini daripada [Google AI Studio](https://makersuite.google.com/app/apikey).
+    -   Salin `.env.example` ke `.env` dan isikan kunci API anda:
+        ```
+        GEMINI_API_KEY=AIzaSy...
+        ```
+
+4.  **Jalankan Pelayan Pembangunan:**
+    Aplikasi ini menggunakan Vite untuk pelayan pembangunan tempatan yang pantas.
+    ```bash
+    npm run dev
+    ```
+    Aplikasi akan tersedia di `http://localhost:5173`. Pelayan proksi API akan dikendalikan secara automatik.
 
 ---
 
-## ⚙️ Konfigurasi
+## 📡 Titik Akhir API (Backend Endpoints)
 
-### Kunci API Google Gemini
+Pelayan proksi di `api/index.ts` menyediakan titik akhir berikut. Semua permintaan adalah `POST`.
 
-Aplikasi ini memerlukan kunci API Google Gemini untuk berfungsi. Kunci ini diuruskan oleh pelayan proksi dan dijangka akan disediakan melalui pembolehubah persekitaran `process.env.GEMINI_API_KEY` di persekitaran pelayan. **Tidak perlu** mengkonfigurasi fail `.env` atau memasukkan kunci API secara manual dalam kod klien.
-
-### Kebenaran Pelayar
-
-Aplikasi akan meminta kebenaran berikut apabila diperlukan:
-- **🎤 Mikrofon:** Diperlukan untuk *Tutor Tajwid AI* dan *Sembang Suara AI*.
-- **📍 Lokasi (Geolocation):** Diperlukan untuk *Waktu Solat* dan *Kompas Qiblat*.
+-   `/api/generate-content`: Titik akhir umum untuk menjana kandungan teks.
+-   `/api/generate-study-plan`: Menjana pelan pembelajaran dalam format JSON.
+-   `/api/convert-to-jawi`: Menukar teks Rumi ke Jawi.
+-   `/api/generate-speech`: Menukar teks kepada audio (TTS).
+-   `/api/tajweed-feedback`: Menganalisis transkrip bacaan untuk maklum balas tajwid.
+-   `/api/edit-image`: Mengedit imej berdasarkan prom teks.
+-   `/api/create-payment`: (Simulasi) Mencipta sesi pembayaran untuk pembelian dalam aplikasi.
 
 ---
 
-## ⚖️ Etika & Sumber Data
+## ⚖️ Etika & Pematuhan Syariah
 
-QuranPulse komited untuk menyediakan kandungan yang beretika dan boleh dipercayai.
+QuranPulse komited untuk menyediakan kandungan yang sahih dan boleh dipercayai, selaras dengan pegangan **Ahli Sunnah Wal Jamaah** dan **Mazhab Syafi'i**.
 
-### 📚 Sumber Data Berautoriti
-
-Ciri `TanyaUstaz` diprogramkan untuk merujuk **HANYA** kepada sumber yang diiktiraf di Malaysia (Al-Quran, Tafsir Pimpinan Ar-Rahman, MyHadith, e-Fatwa JAKIM) untuk memastikan jawapan yang selamat dan boleh dipercayai.
+### 📚 Sumber Rujukan Utama
+Semua kandungan AI berpandukan sumber-sumber rasmi Malaysia, termasuk:
+-   **JAKIM:** `islam.gov.my`
+-   **MyHadith:** `myhadith.islam.gov.my`
+-   **e-Fatwa:** `e-fatwa.gov.my`
+-   **i-Fiqh:** `i-fiqh.islam.gov.my`
+-   Dan portal rasmi lain di bawah seliaan JAKIM.
 
 ### 🛡️ Prinsip Etika AI
+-   **Ketelusan:** Pengguna sentiasa dimaklumkan apabila berinteraksi dengan AI.
+-   **Keselamatan:** AI **dilarang sama sekali** daripada mengeluarkan fatwa.
+-   **Privasi:** Rakaman audio untuk analisis Tajwid tidak disimpan di pelayan.
 
-- **Ketelusan:** Pengguna sentiasa dimaklumkan apabila mereka berinteraksi dengan AI.
-- **Keselamatan:** AI dilarang sama sekali daripada mengeluarkan fatwa atau menggantikan peranan ulama bertauliah.
-- **Privasi:** Rakaman audio untuk analisis Tajwid tidak disimpan. Data peribadi tidak dikumpul.
+> **Penafian:** Ciri AI adalah alat bantuan pembelajaran dan bukan pengganti nasihat daripada ulama yang bertauliah.
 
-> **Penafian:** Semua ciri AI adalah alat bantuan pembelajaran dan bukan pengganti nasihat daripada alim ulama yang bertauliah. Untuk isu-isu fiqh yang kompleks, sila rujuk kepada ustaz atau mufti yang berkelayakan.
+---
+
+### 🛣️ Hala Tuju Masa Depan
+
+-   **Paparan AR Qiblat**: Melaksanakan ciri Realiti Terimbuh (AR) untuk kompas qiblat.
+-   **Mod Hafazan**: Ciri khusus untuk membantu pengguna menghafal Al-Quran.
+-   **Ciri Sosial Lanjutan**: Membolehkan pengguna menambah rakan dan membentuk kumpulan belajar.
+-   **Aplikasi Mudah Alih Asli**: Membangunkan aplikasi iOS dan Android untuk prestasi yang lebih baik.
 
 ---
 
 ## 📜 License
 
-Projek ini dilesenkan di bawah [MIT License](LICENSE). Anda bebas untuk menggunakan, mengubah suai, dan mengedarkan kod ini.
+Projek ini dilesenkan di bawah [MIT License](LICENSE).
 
 ---
 
 ## 🙏 Credits & Acknowledgments
 
-- **Kandungan Islamik:** Tanzil Project, Tafsir Pimpinan Ar-Rahman, Sahih International, Sheikh Mishary Rashid Alafasy.
-- **Sumber Rasmi:** JAKIM (e-Solat, e-Fatwa), MyHadith.
-- **Teknologi:** Google (untuk model Gemini), Pasukan React, Pasukan TypeScript, Tailwind Labs.
+-   **Kandungan Islamik:** Tanzil Project, Tafsir Pimpinan Ar-Rahman, Sheikh Mishary Rashid Alafasy.
+-   **Sumber Rasmi:** JAKIM, Majlis Fatwa Kebangsaan, dan agensi berkaitan.
+-   **Teknologi:** Google (untuk model Gemini), Pasukan React, Pasukan TypeScript, Tailwind Labs.
 
 ---
 
@@ -215,7 +243,5 @@ Projek ini dilesenkan di bawah [MIT License](LICENSE). Anda bebas untuk mengguna
 **بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ**
 
 Dibuat dengan ❤️ untuk Ummah
-
-**QuranPulse** - Teman Harian Anda untuk Pertumbuhan Rohani
 
 </div>

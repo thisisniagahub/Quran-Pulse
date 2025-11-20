@@ -12,6 +12,7 @@ import { AGENT_DEFINITIONS } from '../lib/agents';
 import type { Agent } from '../lib/agents';
 import { cn } from '../lib/utils';
 import { ErrorBoundary } from './ErrorBoundary';
+import { Switch } from './ui/Switch'; // FIX: Imported Switch component
 
 type AgentId = 'gemini' | 'glm';
 
@@ -45,8 +46,8 @@ export const QuranReader: React.FC<QuranReaderProps> = ({
   
   const [isSurahListOpen, setSurahListOpen] = useState(false);
   const [showMalay, setShowMalay] = useState(true);
-  const [showEnglish, setShowEnglish] = useState(true);
-  const [showTransliteration, setShowTransliteration] = useState(true);
+  const [showEnglish, setShowEnglish] = useState(false); // FIX: Default English/Transliteration to false
+  const [showTransliteration, setShowTransliteration] = useState(false); // FIX: Default English/Transliteration to false
   const [selectedAgentId, setSelectedAgentId] = useState<AgentId>('gemini');
   const surahListRef = useRef<HTMLDivElement>(null);
 
@@ -102,11 +103,11 @@ export const QuranReader: React.FC<QuranReaderProps> = ({
                             <ChevronDownIcon className="w-4 h-4 ml-2" />
                         </Button>
                         {isSurahListOpen && (
-                            <div className="absolute z-10 top-full mt-2 w-full max-h-60 overflow-y-auto bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-lg shadow-lg">
+                            <div className="absolute z-10 top-full mt-2 w-full max-h-60 overflow-y-auto bg-card border border-border rounded-lg shadow-lg">
                                 {surahListData.map(s => (
                                     <div key={s.number} onClick={() => handleSurahChange(s.number)} className="p-3 hover:bg-primary/10 cursor-pointer text-left">
                                         <p className="font-bold">{s.number}. {s.englishName}</p>
-                                        <p className="text-sm text-foreground-light/70">{s.name}</p>
+                                        <p className="text-sm text-foreground/70">{s.name}</p>
                                     </div>
                                 ))}
                             </div>
@@ -116,13 +117,13 @@ export const QuranReader: React.FC<QuranReaderProps> = ({
                     <Button onClick={handleNextSurah} disabled={selectedSurah === 114} variant="ghost" size="icon"><ChevronRightIcon /></Button>
                 </div>
 
-                 <div className="mt-4 pt-4 border-t border-border-light dark:border-border-dark text-center">
+                 <div className="mt-4 pt-4 border-t border-border text-center">
                     {currentSurahInfo && (
                         <div className="text-center mb-4 px-2">
                             <h2 className="font-arabic text-3xl">{currentSurahInfo.name}</h2>
                             <h3 className="text-xl font-bold text-primary">{currentSurahInfo.englishName}</h3>
-                            <p className="text-sm text-foreground-light/80 italic">"{currentSurahInfo.englishNameTranslation}"</p>
-                            <p className="text-xs text-foreground-light/70 mt-1">{currentSurahInfo.revelationType} • {currentSurahInfo.numberOfAyahs} Ayat</p>
+                            <p className="text-sm text-foreground/80 italic">"{currentSurahInfo.englishNameTranslation}"</p>
+                            <p className="text-xs text-foreground/70 mt-1">{currentSurahInfo.revelationType} • {currentSurahInfo.numberOfAyahs} Ayat</p>
                         </div>
                     )}
 
@@ -170,18 +171,18 @@ export const QuranReader: React.FC<QuranReaderProps> = ({
                     </div>
                 </div>
                 
-                <div className="mt-4 pt-4 border-t border-border-light dark:border-border-dark space-y-4">
+                <div className="mt-4 pt-4 border-t border-border space-y-4">
                     <div className="flex justify-center items-center gap-4 text-sm flex-wrap">
                         <label className="flex items-center gap-2 cursor-pointer select-none">
-                            <input type="checkbox" checked={showMalay} onChange={() => setShowMalay(!showMalay)} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" />
+                            <Switch checked={showMalay} onCheckedChange={setShowMalay} /> {/* FIX: Used Switch component */}
                             <span>Terjemahan Melayu</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer select-none">
-                            <input type="checkbox" checked={showEnglish} onChange={() => setShowEnglish(!showEnglish)} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" />
+                            <Switch checked={showEnglish} onCheckedChange={setShowEnglish} /> {/* FIX: Used Switch component */}
                             <span>English Translation</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer select-none">
-                            <input type="checkbox" checked={showTransliteration} onChange={() => setShowTransliteration(!showTransliteration)} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" />
+                            <Switch checked={showTransliteration} onCheckedChange={setShowTransliteration} /> {/* FIX: Used Switch component */}
                             <span>Transliterasi</span>
                         </label>
                     </div>
@@ -218,7 +219,7 @@ export const QuranReader: React.FC<QuranReaderProps> = ({
             {error && <div className="text-center p-8 text-primary">{error}</div>}
             {surah && (
                 <div>
-                    <div className="p-4 text-center bg-background-light dark:bg-background-dark">
+                    <div className="p-4 text-center bg-background">
                          <p className="font-arabic text-3xl md:text-4xl">{surah.name}</p>
                          {surah.number !== 1 && surah.number !== 9 && (
                             <p className="font-arabic text-lg md:text-xl mt-2">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</p>

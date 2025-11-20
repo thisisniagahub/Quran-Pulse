@@ -8,6 +8,7 @@ import type { JawiConversion } from '../types';
 import { AgentSelector } from './ui/AgentSelector';
 import { AGENT_DEFINITIONS } from '../lib/agents';
 import type { Agent } from '../lib/agents';
+import { EmptyState } from './ui/EmptyState';
 
 type AgentId = 'gemini' | 'glm';
 
@@ -57,7 +58,7 @@ export const JawiWriter: React.FC = () => {
         <div className="max-w-3xl mx-auto">
             <div className="text-center mb-8">
                 <h2 className="text-3xl font-bold text-primary mb-2">Penulis Jawi AI (PRO)</h2>
-                <p className="text-foreground-light/80 dark:text-foreground-dark/80">Tukar teks Rumi ke tulisan Jawi dengan mudah.</p>
+                <p className="text-foreground/80">Tukar teks Rumi ke tulisan Jawi dengan mudah.</p>
             </div>
             
             <div className="mb-4">
@@ -79,13 +80,13 @@ export const JawiWriter: React.FC = () => {
                                 rows={6}
                                 value={rumiText}
                                 onChange={(e) => setRumiText(e.target.value)}
-                                className="w-full p-3 rounded-lg border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark focus:ring-2 focus:ring-primary"
+                                className="w-full p-3 rounded-lg border border-border bg-background focus:ring-2 focus:ring-primary"
                                 placeholder="Taip di sini..."
                             />
                         </div>
                         <div dir="rtl">
                             <label htmlFor="jawi" className="block font-semibold mb-2 text-right">Teks Jawi</label>
-                            <div id="jawi" className="w-full h-full min-h-[150px] p-3 rounded-lg border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark font-arabic text-xl">
+                            <div id="jawi" className="w-full h-full min-h-[150px] p-3 rounded-lg border border-border bg-background font-arabic text-xl">
                                 {isLoading ? "Menukar..." : jawiText}
                             </div>
                         </div>
@@ -105,17 +106,26 @@ export const JawiWriter: React.FC = () => {
                 <Card>
                     <CardContent className="p-6">
                         <h3 className="font-bold text-lg mb-4">Sejarah Penukaran</h3>
-                        <div className="max-h-60 overflow-y-auto space-y-2">
-                            {history.length > 0 ? history.map(item => (
-                                <div key={item.id} onClick={() => handleHistoryClick(item)} className="p-3 bg-background-light dark:bg-background-dark rounded-lg cursor-pointer hover:bg-primary/10">
-                                    <p className="truncate font-semibold">{item.rumi}</p>
-                                    <p className="text-right font-arabic text-primary truncate">{item.jawi}</p>
-                                </div>
-                            )) : <p className="text-center text-sm text-foreground-light/70">Tiada sejarah.</p>}
-                        </div>
+                        {history.length > 0 ? (
+                            <div className="max-h-60 overflow-y-auto space-y-2">
+                                {history.map(item => (
+                                    <div key={item.id} onClick={() => handleHistoryClick(item)} className="p-3 bg-background rounded-lg cursor-pointer hover:bg-primary/10">
+                                        <p className="truncate font-semibold">{item.rumi}</p>
+                                        <p className="text-right font-arabic text-primary truncate">{item.jawi}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <EmptyState
+                                title="Tiada Sejarah Ditemui"
+                                description="Setiap penukaran yang anda lakukan akan disimpan di sini untuk rujukan masa hadapan."
+                             />
+                        )}
                     </CardContent>
                 </Card>
             )}
         </div>
     );
 };
+
+export default JawiWriter;

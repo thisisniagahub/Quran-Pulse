@@ -1,5 +1,6 @@
 import React from 'react';
-import { TajweedRule } from '../data/tajweedRulesData';
+// FIX: The TajweedRule type is defined in the global types.ts file, not in the data file.
+import type { TajweedRule } from '../types';
 import { XIcon } from './icons/Icons';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/Card';
 

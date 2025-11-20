@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --background-start-rgb: 210 20% 98%;
+        --background-end-rgb: 210 20% 98%;
+        --background: 210 20% 98%;
+        --foreground: 215 39% 11%;
+        --card-rgb: 255 255 255;
+        --border-rgb: 229 231 235;
+        --primary: 158 35% 27%;
+        --primary-foreground: 0 0% 100%;
+        --accent: 45 65% 52%;
+        --destructive: 0 84.2% 60.2%;
+    }
+
+    .dark {
+        --background-start-rgb: 22 18% 12%;
+        --background-end-rgb: 157 39% 10%;
+        --background: 157 39% 10%;
+        --foreground: 210 16% 91%;
+        --card-rgb: 255 255 255; /* White for glass effect */
+        --border-rgb: 255 255 255; /* White for glass effect */
+        --primary: 157 36% 55%;
+        --primary-foreground: 210 20% 98%;
+        --accent: 46 76% 64%;
+        --destructive: 0 72.2% 50.6%;
+    }
+
+    @keyframes gradient-animation {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    body {
+        background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+        background-size: 400% 400%;
+        animation: gradient-animation 15s ease infinite;
+        color: hsl(var(--foreground));
+    }
+    
+    .font-arabic { font-family: 'Amiri Quran', serif; }
+    .font-sans { font-family: 'Inter', sans-serif; }
+
+    /* Glassmorphism styles for form elements */
+    input[type="text"],
+    input[type="tel"],
+    textarea,
+    select {
+        @apply bg-white/10 dark:bg-white/5 backdrop-blur-sm border border-white/20 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-primary text-foreground placeholder:text-foreground/60;
+    }
+}
+
+@keyframes ripple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+.animate-ripple {
+    transform: translate(-50%, -50%);
+    animation: ripple 0.6s linear;
+}
+
+@keyframes subtle-glow {
+  0%, 100% { box-shadow: 0 0 15px -5px hsl(var(--accent) / 0.5); }
+  50% { box-shadow: 0 0 20px -5px hsl(var(--accent) / 0.7); }
+}
+
+.animate-subtle-glow {
+    animation: subtle-glow 3s infinite ease-in-out;
+}
